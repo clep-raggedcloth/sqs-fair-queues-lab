@@ -5,7 +5,9 @@ output "experiment_config" {
     scenarios = {
       for name, scenario in local.scenarios : name => {
         queue_url            = aws_sqs_queue.experiment[name].url
+        queue_name           = aws_sqs_queue.experiment[name].name
         log_group            = aws_cloudwatch_log_group.consumer[name].name
+        function_name        = aws_lambda_function.consumer[name].function_name
         use_message_group_id = scenario.use_message_group_id
         maximum_concurrency  = scenario.maximum_concurrency
       }

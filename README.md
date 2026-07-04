@@ -30,14 +30,16 @@ AWSは分散システムであり、しきい値付近の判定は近似です�
 
 ## シナリオ名
 
-`c100`と`c29`は、SQSイベントソースマッピングに設定するLambdaのMaximum Concurrencyを表します。
+`c100`、`c29`、`c30`は、SQSイベントソースマッピングに設定するLambdaのMaximum Concurrencyを表します。
 
 | シナリオ | MessageGroupId | Maximum Concurrency | 用途 |
 |---|---|---:|---|
 | `fair-c100` | テナントID | 100 | 30件条件へ到達できるFair Queues |
 | `baseline-c100` | なし | 100 | `fair-c100`の比較対象 |
-| `fair-c29` | テナントID | 29 | 同一テナントが30 in-flightへ到達できないFair Queues |
+| `fair-c29` | テナントID | 29 | 30件境界の直前を観測するFair Queues |
 | `baseline-c29` | なし | 29 | `fair-c29`の比較対象 |
+| `fair-c30` | テナントID | 30 | 30件境界を観測するFair Queues |
+| `baseline-c30` | なし | 30 | `fair-c30`の比較対象 |
 
 キュー自体はすべてStandard Queueです。`fair-*`と`baseline-*`の違いは、実験CLIが送信時に`MessageGroupId`を付けるかどうかです。
 
@@ -57,15 +59,24 @@ flowchart LR
         BC29["baseline-c29<br/>Standard Queue<br/>MessageGroupIdなし"] --> BL29["Go Consumer Lambda<br/>BatchSize = 1"]
     end
 
+    subgraph C30["Maximum Concurrency = 30"]
+        FC30["fair-c30<br/>Standard Queue<br/>MessageGroupIdあり"] --> FL30["Go Consumer Lambda<br/>BatchSize = 1"]
+        BC30["baseline-c30<br/>Standard Queue<br/>MessageGroupIdなし"] --> BL30["Go Consumer Lambda<br/>BatchSize = 1"]
+    end
+
     Runner --> FC100
     Runner --> BC100
     Runner --> FC29
     Runner --> BC29
+    Runner --> FC30
+    Runner --> BC30
 
     FL100 --> Logs["CloudWatch Logs<br/>message_started JSON"]
     BL100 --> Logs
     FL29 --> Logs
     BL29 --> Logs
+    FL30 --> Logs
+    BL30 --> Logs
     Logs --> Runner
     Metrics["SQS・Lambda Metrics"] --> Dashboard["CloudWatch Dashboard"]
 ```
@@ -148,8 +159,13 @@ sequenceDiagram
     R->>Q: 20テナントの均等なウォームアップ負荷
     Q->>L: 最大100並列で処理
     R->>R: キューが空になるまで待機
-    R->>A: バースト開始
-    A->>Q: Aを5,000件送信
+    loop 20秒
+        BC->>Q: B・Cのbaselineを送信
+    end
+    R->>R: baselineが処理済みになるまで待機
+    A->>Q: Aの最初のバッチを送信
+    Q-->>R: 最初のバッチを受理（t=0）
+    R->>A: 残りのバーストを継続
     loop 100ms間隔
         BC->>Q: B・Cを交互に送信
     end
@@ -161,7 +177,7 @@ sequenceDiagram
 見る値は次のとおりです。
 
 - バースト開始後のB・Cの`dwell_ms`時系列
-- B・Cのdwell timeが平常範囲へ戻るまでの時間
+- バースト前baselineから算出した平常範囲へ、B・Cの両方が戻るまでの時間
 - `fair-c100`と`baseline-c100`のp50・p95
 - Aのバックログが残っているのにB・Cが先に処理されたか
 - `ApproximateNumberOfNoisyGroups`が0より大きくなったか
@@ -176,14 +192,31 @@ build/experiment run-reaction \
   --burst 5000 \
   --probes 300 \
   --probe-interval 100ms \
+  --baseline-duration 20s \
   --work-ms 2000
 ```
 
 1回の結果だけで断定せず、キューを空にした状態から5〜10回実行し、反応時間の中央値とp95を比較してください。
 
+## 29/30境界試験
+
+同じ短時間負荷をMaximum Concurrency 29と30で別々に実行します。
+
+```bash
+build/experiment run-boundary \
+  --concurrency 29 \
+  --config build/experiment-config.json
+
+build/experiment run-boundary \
+  --concurrency 30 \
+  --config build/experiment-config.json
+```
+
+各条件を5〜10回実行し、Fair/Baseline差、B・Cの回復時間、SQS in-flight、`ApproximateNumberOfNoisyGroups`を比較します。Maximum ConcurrencyとA自身のin-flightは同一ではないため、29/30の差だけでAWS内部の判定経路を断定しません。
+
 ## 検証2：最大同時実行数29での挙動
 
-`fair-c29`と`baseline-c29`を使用します。`BatchSize=1`かつ最大29並列なので、同一テナントAのin-flightは30件へ到達できません。
+`fair-c29`と`baseline-c29`を使用します。`BatchSize=1`かつLambda Maximum Concurrencyを29に設定し、同時呼び出し数を29以下へ制限します。Lambda同時実行数とSQS in-flightは同一の値ではないため、`ApproximateNumberOfMessagesNotVisible`も合わせて確認します。
 
 ただし、Aが29スロットを長時間占有すると、Aの処理時間シェアはほぼ100%になります。この場合はProcessing-time share経路でnoisy tenantと判定される可能性があります。そのため、短時間試験と長時間試験に分けます。
 
@@ -192,7 +225,7 @@ flowchart LR
     Load["Aを大量送信<br/>B・Cを継続送信"] --> Limit["Maximum Concurrency = 29<br/>BatchSize = 1"]
     Limit --> Short["短時間試験<br/>約15秒"]
     Limit --> Long["長時間試験<br/>約120秒"]
-    Short --> CountResult["30件条件を満たせない期間の<br/>fair / baselineを比較"]
+    Short --> CountResult["30件条件を満たしにくい構成の<br/>fair / baselineを比較"]
     Long --> TimeResult["Processing-time経路による<br/>後発の平準化を観測"]
 ```
 
@@ -208,10 +241,10 @@ build/experiment run-low \
 
 - Lambda最大同時実行数が29以下である
 - SQSのin-flightが概ね29以下である
-- Concurrency share経路の「自身が30件以上」を満たしていない
+- SQSのin-flightメトリクス上でも30未満で推移したか
 - 短い観測期間でB・Cのdwell timeに改善が現れるか
 
-これは「Concurrency share経路が使えない状態」の検証です。Fair Queuesが絶対に動かないことを保証する試験ではありません。
+これは「Concurrency share経路の30件条件を満たしにくい構成での早期挙動」を見る試験です。Fair Queuesが動かないことや、AWS内部の判定経路を直接証明する試験ではありません。
 
 ### 2-B：長時間試験
 
@@ -230,7 +263,7 @@ build/experiment run-low \
 - 実AWS検証時に利用できるAWS認証情報
 - Lambda同時実行クォータ
 
-デフォルトでは4関数に合計278のReserved Concurrencyを設定し、各イベントソースの上限より5多く確保します。Lambdaが要求する未予約同時実行枠100も必要になるため、アカウントの同時実行クォータは少なくとも378必要です。クォータが不足する場合は`reserve_concurrency=false`で構築できますが、他ワークロードの影響を受けやすくなります。
+デフォルトでは6関数に合計348のReserved Concurrencyを設定し、各イベントソースの上限より5多く確保します。Lambdaが要求する未予約同時実行枠100も必要になるため、アカウントの同時実行クォータは少なくとも448必要です。クォータが不足する場合は`reserve_concurrency=false`で構築できますが、他ワークロードの影響を受けやすくなります。
 
 実験CLIを実行するIAM主体には、対象キューへの以下の権限が必要です。
 
@@ -238,6 +271,7 @@ build/experiment run-low \
 - `sqs:GetQueueAttributes`
 - `sqs:PurgeQueue`
 - CloudWatch Logsの`StartQuery`と`GetQueryResults`
+- CloudWatchの`GetMetricData`
 
 ## コンテナ内でのテストとビルド
 
@@ -311,15 +345,17 @@ results/<experiment-id>/
 ├── events.csv
 ├── summary.json
 ├── observation-summary.json
-└── recovery-estimate.json
+├── recovery-estimate.json
+└── metrics.json
 ```
 
 - `events.csv`：メッセージ単位の受信開始時刻とdwell time。LT用の時系列グラフの入力
-- `summary.json`：キューが空になるまでの全期間について、シナリオ・テナントごとの件数、p50、p95、最大dwell time
-- `observation-summary.json`：バースト開始からプローブ送信終了までの観測窓だけを集計。短時間試験では、後からProcessing-time経路が働いた可能性のあるデータを混ぜずに比較できる
-- `recovery-estimate.json`：観測窓内でB・Cのdwell timeが一度`2 × work_ms`を超えた後、20件中16件以上がしきい値以内へ戻った最初の時刻。この判定は比較用の運用上の定義であり、AWS内部の検出時刻そのものではない
+- `summary.json`：キューが空になるまでの全期間について、シナリオ・テナント・phaseごとの件数、p50、p95、最大dwell time
+- `observation-summary.json`：バースト開始からプローブ送信終了までに送信されたメッセージを集計。処理開始が観測窓より後になった遅延メッセージも含む
+- `recovery-estimate.json`：最初のAメッセージのSQS `SentTimestamp`をt=0とし、B・Cそれぞれについてbaseline p95から平常範囲を算出。各テナントの直近10件中8件以上が範囲内となり、B・Cの両方が回復した時刻を保存する
+- `metrics.json`：SQSのnoisy group・in-flight・quiet group in-flightとLambda同時実行数を1分粒度のMaximumで保存。秒単位の反応時間ではなく補助証拠として使用する
 
-CloudWatch Logsの到着が遅れて一部件数が不足した場合は、数分待ってから同じ`collect`コマンドを再実行できます。
+CloudWatch Logsまたはメトリクスの到着が遅れて一部件数が不足した場合は、数分待ってから同じ`collect`コマンドを再実行できます。
 
 ## 再実行とキューの初期化
 

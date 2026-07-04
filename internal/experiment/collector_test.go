@@ -20,7 +20,7 @@ func TestDecodeEventLogWithLambdaPrefix(t *testing.T) {
 	}
 }
 
-func TestWriteObservationSummaryExcludesLateStarts(t *testing.T) {
+func TestWriteObservationSummaryUsesSendTimeAndKeepsLateStarts(t *testing.T) {
 	dir := t.TempDir()
 	start := time.Unix(1000, 0).UTC()
 	manifest := Manifest{
@@ -32,8 +32,9 @@ func TestWriteObservationSummaryExcludesLateStarts(t *testing.T) {
 		t.Fatal(err)
 	}
 	path, err := WriteObservationSummary(dir, manifest, []consumer.EventLog{
-		{Scenario: "fair-c29", Tenant: "B", HandlerStartMS: start.Add(5 * time.Second).UnixMilli(), DwellMS: 100},
-		{Scenario: "fair-c29", Tenant: "B", HandlerStartMS: start.Add(20 * time.Second).UnixMilli(), DwellMS: 5000},
+		{Scenario: "fair-c29", Tenant: "B", SQSSentMS: start.Add(4 * time.Second).UnixMilli(), HandlerStartMS: start.Add(5 * time.Second).UnixMilli(), DwellMS: 100},
+		{Scenario: "fair-c29", Tenant: "B", SQSSentMS: start.Add(8 * time.Second).UnixMilli(), HandlerStartMS: start.Add(20 * time.Second).UnixMilli(), DwellMS: 5000},
+		{Scenario: "fair-c29", Tenant: "B", SQSSentMS: start.Add(12 * time.Second).UnixMilli(), HandlerStartMS: start.Add(20 * time.Second).UnixMilli(), DwellMS: 9000},
 	})
 	if err != nil {
 		t.Fatal(err)
@@ -46,7 +47,70 @@ func TestWriteObservationSummaryExcludesLateStarts(t *testing.T) {
 	if err := json.Unmarshal(data, &summaries); err != nil {
 		t.Fatal(err)
 	}
-	if len(summaries) != 1 || summaries[0].Count != 1 || summaries[0].MaxMS != 100 {
+	if len(summaries) != 1 || summaries[0].Count != 2 || summaries[0].MaxMS != 5000 {
 		t.Fatalf("unexpected summaries: %+v", summaries)
+	}
+}
+
+func TestWriteRecoveryEstimatesUsesBaselineAndFirstASentTimestamp(t *testing.T) {
+	dir := t.TempDir()
+	start := time.Unix(1000, 0).UTC()
+	manifest := Manifest{
+		ExperimentID: "exp", Scenarios: []string{"fair-c29"}, WorkMS: 2000,
+		StartedAt:           start.Add(-20 * time.Second).Format(time.RFC3339Nano),
+		ObservationWindowMS: 20_000,
+	}
+	if _, err := SaveManifest(dir, manifest); err != nil {
+		t.Fatal(err)
+	}
+	rows := []consumer.EventLog{{
+		Scenario: "fair-c29", Tenant: "A", Phase: "burst",
+		SQSSentMS: start.UnixMilli(), HandlerStartMS: start.Add(time.Second).UnixMilli(),
+	}}
+	for _, tenant := range []string{"B", "C"} {
+		for i := 0; i < 20; i++ {
+			rows = append(rows, consumer.EventLog{
+				Scenario: "fair-c29", Tenant: tenant, Phase: "baseline", DwellMS: 100,
+				SQSSentMS:      start.Add(-time.Duration(20-i) * time.Second).UnixMilli(),
+				HandlerStartMS: start.Add(-time.Duration(20-i)*time.Second).UnixMilli() + 100,
+			})
+		}
+		rows = append(rows, consumer.EventLog{
+			Scenario: "fair-c29", Tenant: tenant, Phase: "probe", DwellMS: 1000,
+			SQSSentMS: start.Add(time.Second).UnixMilli(), HandlerStartMS: start.Add(2 * time.Second).UnixMilli(),
+		})
+		for i := 0; i < 10; i++ {
+			rows = append(rows, consumer.EventLog{
+				Scenario: "fair-c29", Tenant: tenant, Phase: "probe", DwellMS: 100,
+				SQSSentMS:      start.Add(time.Duration(2+i) * time.Second).UnixMilli(),
+				HandlerStartMS: start.Add(time.Duration(2+i)*time.Second + 100*time.Millisecond).UnixMilli(),
+			})
+		}
+	}
+
+	path, err := WriteRecoveryEstimates(dir, manifest, rows)
+	if err != nil {
+		t.Fatal(err)
+	}
+	data, err := os.ReadFile(path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	var estimates []RecoveryEstimate
+	if err := json.Unmarshal(data, &estimates); err != nil {
+		t.Fatal(err)
+	}
+	if len(estimates) != 1 {
+		t.Fatalf("estimate count = %d, want 1", len(estimates))
+	}
+	got := estimates[0]
+	if got.BurstStartedMS != start.UnixMilli() || got.BurstStartSource != "first_a_sqs_sent_timestamp" {
+		t.Fatalf("unexpected burst start: %+v", got)
+	}
+	if got.ThresholdMSByTenant["B"] != 350 || got.ThresholdMSByTenant["C"] != 350 {
+		t.Fatalf("unexpected thresholds: %+v", got.ThresholdMSByTenant)
+	}
+	if !got.DisturbanceObserved || !got.RecoveryObserved || len(got.TenantRecoveryLatencyMS) != 2 {
+		t.Fatalf("unexpected recovery estimate: %+v", got)
 	}
 }

@@ -138,6 +138,7 @@ func WriteCSV(resultsDir string, manifest Manifest, rows []consumer.EventLog) (s
 type Summary struct {
 	Scenario string `json:"scenario"`
 	Tenant   string `json:"tenant"`
+	Phase    string `json:"phase"`
 	Count    int    `json:"count"`
 	P50MS    int64  `json:"p50_dwell_ms"`
 	P95MS    int64  `json:"p95_dwell_ms"`
@@ -145,13 +146,19 @@ type Summary struct {
 }
 
 type RecoveryEstimate struct {
-	Scenario                 string `json:"scenario"`
-	ThresholdMS              int64  `json:"low_dwell_threshold_ms"`
-	WindowSize               int    `json:"window_size"`
-	RequiredLowDwellMessages int    `json:"required_low_dwell_messages"`
-	DisturbanceObserved      bool   `json:"disturbance_observed"`
-	RecoveryObserved         bool   `json:"recovery_observed"`
-	RecoveryLatencyMS        *int64 `json:"recovery_latency_ms,omitempty"`
+	Scenario                  string           `json:"scenario"`
+	BurstStartedMS            int64            `json:"burst_started_ms"`
+	BurstStartSource          string           `json:"burst_start_source"`
+	ThresholdSource           string           `json:"threshold_source"`
+	BaselineCountByTenant     map[string]int   `json:"baseline_count_by_tenant"`
+	BaselineP95MSByTenant     map[string]int64 `json:"baseline_p95_ms_by_tenant"`
+	ThresholdMSByTenant       map[string]int64 `json:"low_dwell_threshold_ms_by_tenant"`
+	WindowSizePerTenant       int              `json:"window_size_per_tenant"`
+	RequiredLowDwellPerTenant int              `json:"required_low_dwell_messages_per_tenant"`
+	DisturbanceObserved       bool             `json:"disturbance_observed"`
+	RecoveryObserved          bool             `json:"recovery_observed"`
+	TenantRecoveryLatencyMS   map[string]int64 `json:"tenant_recovery_latency_ms,omitempty"`
+	RecoveryLatencyMS         *int64           `json:"recovery_latency_ms,omitempty"`
 }
 
 func WriteSummary(resultsDir string, manifest Manifest, rows []consumer.EventLog) (string, error) {
@@ -159,14 +166,36 @@ func WriteSummary(resultsDir string, manifest Manifest, rows []consumer.EventLog
 }
 
 func WriteObservationSummary(resultsDir string, manifest Manifest, rows []consumer.EventLog) (string, error) {
-	start, err := manifest.StartTime()
-	if err != nil {
-		return "", err
+	scenarioSet := make(map[string]struct{}, len(manifest.Scenarios))
+	for _, scenario := range manifest.Scenarios {
+		scenarioSet[scenario] = struct{}{}
 	}
-	observationEndMS := start.UnixMilli() + int64(manifest.ObservationWindowMS)
+	for _, row := range rows {
+		scenarioSet[row.Scenario] = struct{}{}
+	}
+	burstStarts := make(map[string]int64, len(scenarioSet))
+	for scenario := range scenarioSet {
+		burstStart, _, err := burstStartForScenario(manifest, scenario, rows)
+		if err != nil {
+			return "", err
+		}
+		burstStarts[scenario] = burstStart.UnixMilli()
+	}
 	filtered := make([]consumer.EventLog, 0, len(rows))
 	for _, row := range rows {
-		if row.HandlerStartMS <= observationEndMS {
+		if row.Phase == "baseline" {
+			continue
+		}
+		burstStartMS, ok := burstStarts[row.Scenario]
+		if !ok {
+			continue
+		}
+		observationEndMS := burstStartMS + int64(manifest.ObservationWindowMS)
+		// The observation window describes when probes were submitted. Keep a
+		// probe even when queueing delay pushes its handler start past the end of
+		// the window; excluding those rows would preferentially discard the
+		// slowest messages and bias dwell-time summaries downward.
+		if row.SQSSentMS <= observationEndMS {
 			filtered = append(filtered, row)
 		}
 	}
@@ -176,7 +205,7 @@ func WriteObservationSummary(resultsDir string, manifest Manifest, rows []consum
 func writeSummary(path string, rows []consumer.EventLog) (string, error) {
 	grouped := map[string][]int64{}
 	for _, row := range rows {
-		key := row.Scenario + "\x00" + row.Tenant
+		key := row.Scenario + "\x00" + row.Tenant + "\x00" + row.Phase
 		grouped[key] = append(grouped[key], row.DwellMS)
 	}
 	var summaries []Summary
@@ -184,12 +213,15 @@ func writeSummary(path string, rows []consumer.EventLog) (string, error) {
 		sort.Slice(values, func(i, j int) bool { return values[i] < values[j] })
 		parts := strings.Split(key, "\x00")
 		summaries = append(summaries, Summary{
-			Scenario: parts[0], Tenant: parts[1], Count: len(values),
+			Scenario: parts[0], Tenant: parts[1], Phase: parts[2], Count: len(values),
 			P50MS: percentile(values, 0.50), P95MS: percentile(values, 0.95), MaxMS: values[len(values)-1],
 		})
 	}
 	sort.Slice(summaries, func(i, j int) bool {
 		if summaries[i].Scenario == summaries[j].Scenario {
+			if summaries[i].Tenant == summaries[j].Tenant {
+				return summaries[i].Phase < summaries[j].Phase
+			}
 			return summaries[i].Tenant < summaries[j].Tenant
 		}
 		return summaries[i].Scenario < summaries[j].Scenario
@@ -202,51 +234,83 @@ func writeSummary(path string, rows []consumer.EventLog) (string, error) {
 }
 
 func WriteRecoveryEstimates(resultsDir string, manifest Manifest, rows []consumer.EventLog) (string, error) {
-	start, err := manifest.StartTime()
-	if err != nil {
-		return "", err
-	}
-	threshold := int64(manifest.WorkMS * 2)
-	observationEndMS := start.UnixMilli() + int64(manifest.ObservationWindowMS)
-	const windowSize = 20
-	const requiredLow = 16
-	grouped := map[string][]consumer.EventLog{}
-	for _, row := range rows {
-		if row.HandlerStartMS <= observationEndMS && row.Phase == "probe" && (row.Tenant == "B" || row.Tenant == "C") {
-			grouped[row.Scenario] = append(grouped[row.Scenario], row)
-		}
-	}
+	const windowSize = 10
+	const requiredLow = 8
 
 	estimates := make([]RecoveryEstimate, 0, len(manifest.Scenarios))
 	for _, scenario := range manifest.Scenarios {
-		probes := grouped[scenario]
-		sort.Slice(probes, func(i, j int) bool { return probes[i].HandlerStartMS < probes[j].HandlerStartMS })
-		estimate := RecoveryEstimate{
-			Scenario: scenario, ThresholdMS: threshold, WindowSize: windowSize,
-			RequiredLowDwellMessages: requiredLow,
+		burstStart, burstStartSource, err := burstStartForScenario(manifest, scenario, rows)
+		if err != nil {
+			return "", err
 		}
-		disturbedAt := -1
-		for index, probe := range probes {
-			if probe.DwellMS > threshold {
-				disturbedAt = index
-				estimate.DisturbanceObserved = true
-				break
+		observationEndMS := burstStart.UnixMilli() + int64(manifest.ObservationWindowMS)
+		estimate := RecoveryEstimate{
+			Scenario: scenario, BurstStartedMS: burstStart.UnixMilli(), BurstStartSource: burstStartSource,
+			ThresholdSource: "baseline_p95", BaselineCountByTenant: map[string]int{},
+			BaselineP95MSByTenant: map[string]int64{}, ThresholdMSByTenant: map[string]int64{},
+			WindowSizePerTenant: windowSize, RequiredLowDwellPerTenant: requiredLow,
+			TenantRecoveryLatencyMS: map[string]int64{},
+		}
+
+		baselineByTenant := map[string][]int64{"B": {}, "C": {}}
+		probesByTenant := map[string][]consumer.EventLog{"B": {}, "C": {}}
+		for _, row := range rows {
+			if row.Scenario != scenario || (row.Tenant != "B" && row.Tenant != "C") {
+				continue
+			}
+			switch row.Phase {
+			case "baseline":
+				baselineByTenant[row.Tenant] = append(baselineByTenant[row.Tenant], row.DwellMS)
+			case "probe":
+				if row.SQSSentMS <= observationEndMS {
+					probesByTenant[row.Tenant] = append(probesByTenant[row.Tenant], row)
+				}
 			}
 		}
-		if disturbedAt >= 0 {
-			for windowStart := disturbedAt + 1; windowStart+windowSize <= len(probes); windowStart++ {
-				lowCount := 0
-				for _, probe := range probes[windowStart : windowStart+windowSize] {
-					if probe.DwellMS <= threshold {
-						lowCount++
-					}
+
+		for _, tenant := range []string{"B", "C"} {
+			values := baselineByTenant[tenant]
+			sort.Slice(values, func(i, j int) bool { return values[i] < values[j] })
+			estimate.BaselineCountByTenant[tenant] = len(values)
+			if len(values) == 0 {
+				estimate.ThresholdSource = "fallback_2x_work_ms"
+				estimate.ThresholdMSByTenant[tenant] = int64(manifest.WorkMS * 2)
+			} else {
+				p95 := percentile(values, 0.95)
+				estimate.BaselineP95MSByTenant[tenant] = p95
+				estimate.ThresholdMSByTenant[tenant] = max(p95*2, p95+250)
+			}
+			sort.Slice(probesByTenant[tenant], func(i, j int) bool {
+				return probesByTenant[tenant][i].HandlerStartMS < probesByTenant[tenant][j].HandlerStartMS
+			})
+		}
+
+		disturbedAtMS := int64(0)
+		for _, tenant := range []string{"B", "C"} {
+			threshold := estimate.ThresholdMSByTenant[tenant]
+			for _, probe := range probesByTenant[tenant] {
+				if probe.DwellMS > threshold && (disturbedAtMS == 0 || probe.HandlerStartMS < disturbedAtMS) {
+					disturbedAtMS = probe.HandlerStartMS
 				}
-				if lowCount >= requiredLow {
-					latency := probes[windowStart].HandlerStartMS - start.UnixMilli()
-					estimate.RecoveryObserved = true
-					estimate.RecoveryLatencyMS = &latency
+			}
+		}
+		estimate.DisturbanceObserved = disturbedAtMS != 0
+		if estimate.DisturbanceObserved {
+			latestRecoveryAtMS := int64(0)
+			for _, tenant := range []string{"B", "C"} {
+				recoveryAtMS, ok := recoveryTime(probesByTenant[tenant], estimate.ThresholdMSByTenant[tenant], disturbedAtMS, windowSize, requiredLow)
+				if !ok {
+					latestRecoveryAtMS = 0
 					break
 				}
+				latency := recoveryAtMS - burstStart.UnixMilli()
+				estimate.TenantRecoveryLatencyMS[tenant] = latency
+				latestRecoveryAtMS = max(latestRecoveryAtMS, recoveryAtMS)
+			}
+			if latestRecoveryAtMS > 0 && len(estimate.TenantRecoveryLatencyMS) == 2 {
+				latency := latestRecoveryAtMS - burstStart.UnixMilli()
+				estimate.RecoveryObserved = true
+				estimate.RecoveryLatencyMS = &latency
 			}
 		}
 		estimates = append(estimates, estimate)
@@ -258,6 +322,47 @@ func WriteRecoveryEstimates(resultsDir string, manifest Manifest, rows []consume
 		return "", err
 	}
 	return path, os.WriteFile(path, append(data, '\n'), 0o644)
+}
+
+func recoveryTime(probes []consumer.EventLog, threshold, disturbedAtMS int64, windowSize, requiredLow int) (int64, bool) {
+	for windowStart := 0; windowStart+windowSize <= len(probes); windowStart++ {
+		if probes[windowStart].HandlerStartMS <= disturbedAtMS {
+			continue
+		}
+		lowCount := 0
+		for _, probe := range probes[windowStart : windowStart+windowSize] {
+			if probe.DwellMS <= threshold {
+				lowCount++
+			}
+		}
+		if lowCount >= requiredLow {
+			// Recovery is only established once the complete qualifying window has
+			// been observed, so report the final message in that window.
+			return probes[windowStart+windowSize-1].HandlerStartMS, true
+		}
+	}
+	return 0, false
+}
+
+func burstStartForScenario(manifest Manifest, scenario string, rows []consumer.EventLog) (time.Time, string, error) {
+	var firstSentMS int64
+	for _, row := range rows {
+		if row.Scenario == scenario && row.Tenant == "A" && row.Phase == "burst" && row.SQSSentMS > 0 && (firstSentMS == 0 || row.SQSSentMS < firstSentMS) {
+			firstSentMS = row.SQSSentMS
+		}
+	}
+	if firstSentMS > 0 {
+		return time.UnixMilli(firstSentMS).UTC(), "first_a_sqs_sent_timestamp", nil
+	}
+	start, err := manifest.BurstStartTime(scenario)
+	if err != nil {
+		return time.Time{}, "", err
+	}
+	source := "manifest_started_at_fallback"
+	if timing, ok := manifest.ScenarioTimings[scenario]; ok && timing.BurstStartedAt != "" {
+		source = "first_a_batch_accepted"
+	}
+	return start, source, nil
 }
 
 func percentile(sorted []int64, p float64) int64 {

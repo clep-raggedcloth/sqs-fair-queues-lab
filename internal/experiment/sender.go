@@ -44,6 +44,17 @@ func (s *Sender) SendOne(ctx context.Context, scenarioName string, scenario Scen
 }
 
 func (s *Sender) SendMany(ctx context.Context, scenarioName string, scenario Scenario, works []message.Work, workers int) error {
+	return s.sendMany(ctx, scenarioName, scenario, works, workers, nil)
+}
+
+// SendManyWithFirstAccepted behaves like SendMany and invokes onFirstAccepted
+// once, immediately after the first completely successful batch response. The
+// callback is used as the experiment's burst-start barrier.
+func (s *Sender) SendManyWithFirstAccepted(ctx context.Context, scenarioName string, scenario Scenario, works []message.Work, workers int, onFirstAccepted func(time.Time)) error {
+	return s.sendMany(ctx, scenarioName, scenario, works, workers, onFirstAccepted)
+}
+
+func (s *Sender) sendMany(ctx context.Context, scenarioName string, scenario Scenario, works []message.Work, workers int, onFirstAccepted func(time.Time)) error {
 	if workers < 1 {
 		workers = 1
 	}
@@ -80,6 +91,7 @@ func (s *Sender) SendMany(ctx context.Context, scenarioName string, scenario Sce
 	var wg sync.WaitGroup
 	var firstErr error
 	var errOnce sync.Once
+	var acceptedOnce sync.Once
 	for range workers {
 		wg.Add(1)
 		go func() {
@@ -98,6 +110,9 @@ func (s *Sender) SendMany(ctx context.Context, scenarioName string, scenario Sce
 						firstErr = fmt.Errorf("send batch to %s: %d entries failed; first=%s", scenarioName, len(out.Failed), aws.ToString(out.Failed[0].Message))
 					})
 					return
+				}
+				if onFirstAccepted != nil {
+					acceptedOnce.Do(func() { onFirstAccepted(time.Now().UTC()) })
 				}
 			}
 		}()

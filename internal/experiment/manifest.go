@@ -9,19 +9,25 @@ import (
 )
 
 type Manifest struct {
-	ExperimentID        string   `json:"experiment_id"`
-	Kind                string   `json:"kind"`
-	Mode                string   `json:"mode,omitempty"`
-	Scenarios           []string `json:"scenarios"`
-	StartedAt           string   `json:"started_at"`
-	CompletedAt         string   `json:"completed_at"`
-	WorkMS              int      `json:"work_ms"`
-	BurstMessages       int      `json:"burst_messages_per_scenario"`
-	ProbeMessages       int      `json:"probe_messages_per_scenario"`
-	ProbeIntervalMS     int      `json:"probe_interval_ms"`
-	ObservationWindowMS int      `json:"observation_window_ms"`
-	WarmupMessages      int      `json:"warmup_messages_per_scenario"`
-	MaximumConcurrency  int      `json:"maximum_concurrency"`
+	ExperimentID        string                    `json:"experiment_id"`
+	Kind                string                    `json:"kind"`
+	Mode                string                    `json:"mode,omitempty"`
+	Scenarios           []string                  `json:"scenarios"`
+	StartedAt           string                    `json:"started_at"`
+	CompletedAt         string                    `json:"completed_at"`
+	WorkMS              int                       `json:"work_ms"`
+	BurstMessages       int                       `json:"burst_messages_per_scenario"`
+	ProbeMessages       int                       `json:"probe_messages_per_scenario"`
+	ProbeIntervalMS     int                       `json:"probe_interval_ms"`
+	ObservationWindowMS int                       `json:"observation_window_ms"`
+	WarmupMessages      int                       `json:"warmup_messages_per_scenario"`
+	BaselineDurationMS  int                       `json:"baseline_duration_ms"`
+	MaximumConcurrency  int                       `json:"maximum_concurrency"`
+	ScenarioTimings     map[string]ScenarioTiming `json:"scenario_timings,omitempty"`
+}
+
+type ScenarioTiming struct {
+	BurstStartedAt string `json:"burst_started_at"`
 }
 
 func (m Manifest) StartTime() (time.Time, error) {
@@ -30,6 +36,13 @@ func (m Manifest) StartTime() (time.Time, error) {
 
 func (m Manifest) CompletionTime() (time.Time, error) {
 	return time.Parse(time.RFC3339Nano, m.CompletedAt)
+}
+
+func (m Manifest) BurstStartTime(scenario string) (time.Time, error) {
+	if timing, ok := m.ScenarioTimings[scenario]; ok && timing.BurstStartedAt != "" {
+		return time.Parse(time.RFC3339Nano, timing.BurstStartedAt)
+	}
+	return m.StartTime()
 }
 
 func SaveManifest(resultsDir string, manifest Manifest) (string, error) {

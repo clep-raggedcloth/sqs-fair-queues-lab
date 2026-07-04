@@ -12,20 +12,22 @@ import (
 	"github.com/aoiito/sqs-fair-queue-verification/internal/experiment"
 	"github.com/aoiito/sqs-fair-queue-verification/internal/message"
 	awsconfig "github.com/aws/aws-sdk-go-v2/config"
+	"github.com/aws/aws-sdk-go-v2/service/cloudwatch"
 	"github.com/aws/aws-sdk-go-v2/service/cloudwatchlogs"
 	"github.com/aws/aws-sdk-go-v2/service/sqs"
 )
 
 type runOptions struct {
-	configPath    string
-	resultsDir    string
-	workMS        int
-	burstMessages int
-	probeMessages int
-	probeInterval time.Duration
-	warmup        int
-	sendWorkers   int
-	mode          string
+	configPath       string
+	resultsDir       string
+	workMS           int
+	burstMessages    int
+	probeMessages    int
+	probeInterval    time.Duration
+	baselineDuration time.Duration
+	warmup           int
+	sendWorkers      int
+	mode             string
 }
 
 func main() {
@@ -37,6 +39,8 @@ func main() {
 	switch os.Args[1] {
 	case "run-reaction":
 		err = runCommand(os.Args[2:], 100, "reaction")
+	case "run-boundary":
+		err = runBoundaryCommand(os.Args[2:])
 	case "run-low":
 		err = runLowCommand(os.Args[2:])
 	case "collect":
@@ -56,6 +60,7 @@ func main() {
 func usage() {
 	fmt.Fprintln(os.Stderr, `Usage:
   experiment run-reaction [flags]
+  experiment run-boundary --concurrency 29|30 [flags]
   experiment run-low --mode short|long [flags]
   experiment collect --manifest results/<id>/manifest.json [flags]
   experiment purge [flags]`)
@@ -70,6 +75,7 @@ func baseRunFlags(name string, args []string) (*flag.FlagSet, *runOptions) {
 	fs.IntVar(&opts.burstMessages, "burst", 5000, "Tenant A burst messages per scenario")
 	fs.IntVar(&opts.probeMessages, "probes", 300, "Quiet-tenant probe messages per scenario")
 	fs.DurationVar(&opts.probeInterval, "probe-interval", 100*time.Millisecond, "Interval between B/C probes")
+	fs.DurationVar(&opts.baselineDuration, "baseline-duration", 20*time.Second, "Duration of the pre-burst B/C baseline phase")
 	fs.IntVar(&opts.warmup, "warmup", 200, "Balanced warm-up messages per scenario")
 	fs.IntVar(&opts.sendWorkers, "send-workers", 16, "Concurrent SendMessageBatch workers")
 	_ = args
@@ -86,7 +92,7 @@ func runCommand(args []string, concurrency int, kind string) error {
 
 func runLowCommand(args []string) error {
 	fs, opts := baseRunFlags("run-low", args)
-	fs.StringVar(&opts.mode, "mode", "short", "short tests the count path; long observes possible processing-time detection")
+	fs.StringVar(&opts.mode, "mode", "short", "short observes early behavior below 30; long observes possible processing-time detection")
 	if err := fs.Parse(args); err != nil {
 		return err
 	}
@@ -105,6 +111,22 @@ func runLowCommand(args []string) error {
 	return executeRun(context.Background(), *opts, 29, "low-concurrency")
 }
 
+func runBoundaryCommand(args []string) error {
+	fs, opts := baseRunFlags("run-boundary", args)
+	concurrency := fs.Int("concurrency", 30, "Lambda maximum concurrency; must be 29 or 30")
+	if err := fs.Parse(args); err != nil {
+		return err
+	}
+	if *concurrency != 29 && *concurrency != 30 {
+		return fmt.Errorf("concurrency must be 29 or 30")
+	}
+	if !flagWasSet(fs, "probes") {
+		opts.probeMessages = 150
+	}
+	opts.mode = "boundary"
+	return executeRun(context.Background(), *opts, *concurrency, "count-boundary")
+}
+
 func flagWasSet(fs *flag.FlagSet, name string) bool {
 	found := false
 	fs.Visit(func(f *flag.Flag) {
@@ -116,6 +138,12 @@ func flagWasSet(fs *flag.FlagSet, name string) bool {
 }
 
 func executeRun(parent context.Context, opts runOptions, concurrency int, kind string) error {
+	if opts.burstMessages < 1 || opts.probeMessages < 1 {
+		return fmt.Errorf("burst and probes must be at least 1")
+	}
+	if opts.probeInterval <= 0 || opts.baselineDuration < 0 {
+		return fmt.Errorf("probe-interval must be positive and baseline-duration must not be negative")
+	}
 	config, err := experiment.LoadConfig(opts.configPath)
 	if err != nil {
 		return err
@@ -146,8 +174,15 @@ func executeRun(parent context.Context, opts runOptions, concurrency int, kind s
 
 	experimentID := fmt.Sprintf("%s-%s", kind, time.Now().UTC().Format("20060102T150405.000000000Z"))
 	startedAt := time.Now().UTC()
-	fmt.Printf("starting %s\n", experimentID)
-	if err := sendMeasurement(ctx, sender, scenarios, experimentID, opts); err != nil {
+	fmt.Printf("starting %s with %s of B/C baseline traffic\n", experimentID, opts.baselineDuration)
+	if err := sendBaseline(ctx, sender, scenarios, experimentID, opts); err != nil {
+		return fmt.Errorf("send baseline: %w", err)
+	}
+	if err := sender.WaitForDrain(ctx, scenarios); err != nil {
+		return fmt.Errorf("wait for baseline drain: %w", err)
+	}
+	timings, err := sendMeasurement(ctx, sender, scenarios, experimentID, opts)
+	if err != nil {
 		return err
 	}
 	fmt.Println("all messages accepted; waiting for both queues to drain")
@@ -167,7 +202,9 @@ func executeRun(parent context.Context, opts runOptions, concurrency int, kind s
 		ProbeIntervalMS:     int(opts.probeInterval.Milliseconds()),
 		ObservationWindowMS: opts.probeMessages * int(opts.probeInterval.Milliseconds()),
 		WarmupMessages:      opts.warmup,
+		BaselineDurationMS:  int(opts.baselineDuration.Milliseconds()),
 		MaximumConcurrency:  concurrency,
+		ScenarioTimings:     timings,
 	}
 	path, err := experiment.SaveManifest(opts.resultsDir, manifest)
 	if err != nil {
@@ -189,10 +226,44 @@ func sendWarmup(ctx context.Context, sender *experiment.Sender, scenarios map[st
 	})
 }
 
-func sendMeasurement(ctx context.Context, sender *experiment.Sender, scenarios map[string]experiment.Scenario, experimentID string, opts runOptions) error {
+func sendBaseline(ctx context.Context, sender *experiment.Sender, scenarios map[string]experiment.Scenario, experimentID string, opts runOptions) error {
+	if opts.baselineDuration == 0 {
+		return nil
+	}
+	messageCount := max(1, int(opts.baselineDuration/opts.probeInterval))
 	return forEachScenario(scenarios, func(name string, scenario experiment.Scenario) error {
+		ticker := time.NewTicker(opts.probeInterval)
+		defer ticker.Stop()
+		for i := 0; i < messageCount; i++ {
+			if i > 0 {
+				select {
+				case <-ctx.Done():
+					return ctx.Err()
+				case <-ticker.C:
+				}
+			}
+			tenant := "B"
+			if i%2 == 1 {
+				tenant = "C"
+			}
+			work := message.New(experimentID, name, tenant, "baseline", i, opts.workMS, time.Now())
+			if err := sender.SendOne(ctx, name, scenario, work); err != nil {
+				return err
+			}
+		}
+		return nil
+	})
+}
+
+func sendMeasurement(ctx context.Context, sender *experiment.Sender, scenarios map[string]experiment.Scenario, experimentID string, opts runOptions) (map[string]experiment.ScenarioTiming, error) {
+	timings := make(map[string]experiment.ScenarioTiming, len(scenarios))
+	var timingsMu sync.Mutex
+	err := forEachScenario(scenarios, func(name string, scenario experiment.Scenario) error {
+		scenarioCtx, cancel := context.WithCancel(ctx)
+		defer cancel()
 		var wg sync.WaitGroup
 		errCh := make(chan error, 2)
+		burstStarted := make(chan time.Time, 1)
 		wg.Add(2)
 		go func() {
 			defer wg.Done()
@@ -200,17 +271,33 @@ func sendMeasurement(ctx context.Context, sender *experiment.Sender, scenarios m
 			for i := 0; i < opts.burstMessages; i++ {
 				works = append(works, message.New(experimentID, name, "A", "burst", i, opts.workMS, time.Now()))
 			}
-			errCh <- sender.SendMany(ctx, name, scenario, works, opts.sendWorkers)
+			err := sender.SendManyWithFirstAccepted(scenarioCtx, name, scenario, works, opts.sendWorkers, func(at time.Time) {
+				burstStarted <- at
+			})
+			if err != nil {
+				cancel()
+			}
+			errCh <- err
 		}()
 		go func() {
 			defer wg.Done()
+			var startedAt time.Time
+			select {
+			case <-scenarioCtx.Done():
+				errCh <- scenarioCtx.Err()
+				return
+			case startedAt = <-burstStarted:
+			}
+			timingsMu.Lock()
+			timings[name] = experiment.ScenarioTiming{BurstStartedAt: startedAt.Format(time.RFC3339Nano)}
+			timingsMu.Unlock()
 			ticker := time.NewTicker(opts.probeInterval)
 			defer ticker.Stop()
 			for i := 0; i < opts.probeMessages; i++ {
 				if i > 0 {
 					select {
-					case <-ctx.Done():
-						errCh <- ctx.Err()
+					case <-scenarioCtx.Done():
+						errCh <- scenarioCtx.Err()
 						return
 					case <-ticker.C:
 					}
@@ -220,7 +307,8 @@ func sendMeasurement(ctx context.Context, sender *experiment.Sender, scenarios m
 					tenant = "C"
 				}
 				work := message.New(experimentID, name, tenant, "probe", i, opts.workMS, time.Now())
-				if err := sender.SendOne(ctx, name, scenario, work); err != nil {
+				if err := sender.SendOne(scenarioCtx, name, scenario, work); err != nil {
+					cancel()
 					errCh <- err
 					return
 				}
@@ -236,6 +324,10 @@ func sendMeasurement(ctx context.Context, sender *experiment.Sender, scenarios m
 		}
 		return nil
 	})
+	if err != nil {
+		return nil, err
+	}
+	return timings, nil
 }
 
 func forEachScenario(scenarios map[string]experiment.Scenario, fn func(string, experiment.Scenario) error) error {
@@ -304,7 +396,15 @@ func collectCommand(args []string) error {
 	if err != nil {
 		return err
 	}
-	fmt.Printf("collected %d message starts\nevents: %s\nfull summary: %s\nobservation summary: %s\nrecovery estimate: %s\n", len(rows), csvPath, summaryPath, observationSummaryPath, recoveryPath)
+	metricSeries, err := experiment.CollectMetrics(ctx, cloudwatch.NewFromConfig(awsCfg), config, manifest)
+	if err != nil {
+		return fmt.Errorf("collect CloudWatch metrics: %w", err)
+	}
+	metricsPath, err := experiment.WriteMetrics(*resultsDir, manifest, metricSeries)
+	if err != nil {
+		return err
+	}
+	fmt.Printf("collected %d message starts\nevents: %s\nfull summary: %s\nobservation summary: %s\nrecovery estimate: %s\nmetrics: %s\n", len(rows), csvPath, summaryPath, observationSummaryPath, recoveryPath, metricsPath)
 	return nil
 }
 

@@ -8,7 +8,9 @@ import (
 
 type Scenario struct {
 	QueueURL           string `json:"queue_url"`
+	QueueName          string `json:"queue_name"`
 	LogGroup           string `json:"log_group"`
+	FunctionName       string `json:"function_name"`
 	UseMessageGroupID  bool   `json:"use_message_group_id"`
 	MaximumConcurrency int    `json:"maximum_concurrency"`
 }

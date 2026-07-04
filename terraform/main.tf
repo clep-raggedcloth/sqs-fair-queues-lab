@@ -20,6 +20,16 @@ locals {
       use_message_group_id = false
       description          = "Standard Queue baseline without MessageGroupId; Lambda maximum concurrency 29"
     }
+    fair-c30 = {
+      maximum_concurrency  = 30
+      use_message_group_id = true
+      description          = "Fair Queue enabled by tenant MessageGroupId; Lambda maximum concurrency 30"
+    }
+    baseline-c30 = {
+      maximum_concurrency  = 30
+      use_message_group_id = false
+      description          = "Standard Queue baseline without MessageGroupId; Lambda maximum concurrency 30"
+    }
   }
 
   lambda_zip = startswith(var.lambda_zip_path, "/") ? var.lambda_zip_path : "${path.module}/${var.lambda_zip_path}"

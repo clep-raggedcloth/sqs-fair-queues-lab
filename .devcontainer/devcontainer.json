@@ -1,0 +1,21 @@
+{
+  "name": "SQS Verification Environment",
+  "dockerComposeFile": "docker-compose.yml",
+  "service": "app",
+  "workspaceFolder": "/workspace",
+  "customizations": {
+    "vscode": {
+      "extensions": [
+        "golang.go",
+        "hashicorp.terraform",
+        "amazonwebservices.aws-toolkit-vscode"
+      ]
+    }
+  },
+  "features": {
+    "ghcr.io/devcontainers/features/aws-cli:1": {},
+    "ghcr.io/devcontainers/features/terraform:1": {}
+  },
+  "postStartCommand": "bash .devcontainer/init_local.sh",
+  "remoteUser": "root"
+}

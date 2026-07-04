@@ -1,0 +1,347 @@
+# Amazon SQS Fair Queues 検証環境
+
+Amazon SQS Standard QueueでFair Queuesを利用し、次の2点をAWS上で検証するためのコードです。
+
+1. テナントAのバースト発生後、静かなテナントB・Cのdwell timeが平常値へ戻るまでの時間
+2. Lambdaの最大同時実行数を29に制限したとき、Fair Queuesの2つの検出経路がどう動くか
+
+ConsumerはGoのLambda、AWSリソースはTerraform、負荷生成と結果回収はGo CLIで実装しています。開発環境にはDev Containerを使用します。
+
+## 最初に押さえるFair Queuesの判定条件
+
+Fair Queuesは、同じ`MessageGroupId`を持つメッセージを同一テナントとして扱います。テナントがnoisy neighborと判定される条件は次のどちらかです。
+
+- Concurrency share経路：テナントが全in-flightの10%を超え、かつ自身のin-flightが30件以上
+- Processing-time share経路：直近の総処理時間に占めるテナントの割合が10%を超える
+
+したがって「コンシューマーが30未満ならFair Queuesは動かない」という条件ではありません。正しくは、同一テナントのin-flightが30件未満ならConcurrency share経路の30件条件を満たせない、です。
+
+```mermaid
+flowchart TD
+    Start["テナントAの負荷を観測"] --> Count{"Aのin-flightが30件以上<br/>かつ全体の10%超か"}
+    Count -->|Yes| Noisy["Aをnoisy tenantとして検出可能"]
+    Count -->|No| Time{"Aの処理時間シェアが<br/>10%超か"}
+    Time -->|Yes| Noisy
+    Time -->|No| Normal["現時点ではnoisy判定なし"]
+    Noisy --> Prefer["B・Cなどquiet tenantの<br/>メッセージを優先配信"]
+```
+
+AWSは分散システムであり、しきい値付近の判定は近似です。また、Processing-time shareの集計期間や内部の判定時刻は公開されていません。この検証ではサービス内部の時刻を直接測るのではなく、B・Cのdwell timeが継続的に改善した時刻を反応時間として扱います。
+
+## シナリオ名
+
+`c100`と`c29`は、SQSイベントソースマッピングに設定するLambdaのMaximum Concurrencyを表します。
+
+| シナリオ | MessageGroupId | Maximum Concurrency | 用途 |
+|---|---|---:|---|
+| `fair-c100` | テナントID | 100 | 30件条件へ到達できるFair Queues |
+| `baseline-c100` | なし | 100 | `fair-c100`の比較対象 |
+| `fair-c29` | テナントID | 29 | 同一テナントが30 in-flightへ到達できないFair Queues |
+| `baseline-c29` | なし | 29 | `fair-c29`の比較対象 |
+
+キュー自体はすべてStandard Queueです。`fair-*`と`baseline-*`の違いは、実験CLIが送信時に`MessageGroupId`を付けるかどうかです。
+
+## 全体構成
+
+```mermaid
+flowchart LR
+    Runner["Go experiment CLI<br/>負荷生成・結果回収"]
+
+    subgraph C100["Maximum Concurrency = 100"]
+        FC100["fair-c100<br/>Standard Queue<br/>MessageGroupIdあり"] --> FL100["Go Consumer Lambda<br/>BatchSize = 1"]
+        BC100["baseline-c100<br/>Standard Queue<br/>MessageGroupIdなし"] --> BL100["Go Consumer Lambda<br/>BatchSize = 1"]
+    end
+
+    subgraph C29["Maximum Concurrency = 29"]
+        FC29["fair-c29<br/>Standard Queue<br/>MessageGroupIdあり"] --> FL29["Go Consumer Lambda<br/>BatchSize = 1"]
+        BC29["baseline-c29<br/>Standard Queue<br/>MessageGroupIdなし"] --> BL29["Go Consumer Lambda<br/>BatchSize = 1"]
+    end
+
+    Runner --> FC100
+    Runner --> BC100
+    Runner --> FC29
+    Runner --> BC29
+
+    FL100 --> Logs["CloudWatch Logs<br/>message_started JSON"]
+    BL100 --> Logs
+    FL29 --> Logs
+    BL29 --> Logs
+    Logs --> Runner
+    Metrics["SQS・Lambda Metrics"] --> Dashboard["CloudWatch Dashboard"]
+```
+
+`BatchSize=1`に固定することで、1回のLambda実行が保持するin-flightメッセージを1件にします。Lambdaの同時実行数とSQSのin-flight件数は完全に同一のメトリクスではありませんが、バッチによる倍率を排除できます。
+
+## Dev Container
+
+ホスト側にGoやTerraformを直接インストールする必要はありません。Dev Containerには次の環境が含まれています。
+
+- Go 1.26
+- Terraform
+- AWS CLI
+- VS CodeのGo、Terraform、AWS Toolkit拡張
+- SQSとDynamoDBを提供するMinistack
+
+```mermaid
+flowchart LR
+    Host["ホスト環境<br/>Docker・Dev Containers"] --> App["app container<br/>Go 1.26<br/>Terraform<br/>AWS CLI"]
+    App --> Mini["ministack container<br/>SQS・DynamoDB<br/>localhost:4566"]
+    App --> AWS["実AWS<br/>SQS Fair Queues<br/>Lambda・CloudWatch"]
+```
+
+MinistackはGoコードの開発や基本的なSQS API確認に利用します。Fair Queuesのスケジューリング、Lambdaイベントソースマッピング、CloudWatchメトリクスを含む最終検証は実AWSで行います。
+
+### 起動
+
+VS Codeでは、このリポジトリを開いて`Dev Containers: Reopen in Container`を実行します。初回起動時はコンテナのビルド、Goモジュールのダウンロード、Ministackの疎通確認が自動実行されます。
+
+CLIからコンテナだけ起動する場合：
+
+```bash
+docker compose -f .devcontainer/docker-compose.yml up -d --build
+docker compose -f .devcontainer/docker-compose.yml exec app bash
+```
+
+コンテナ内のワークスペースは`/workspace`です。
+
+```bash
+cd /workspace
+go version
+terraform version
+aws --version
+aws --endpoint-url "$AWS_ENDPOINT" sqs list-queues
+```
+
+## Consumerが記録する値
+
+Consumerは処理を始めた直後に、次のJSONを標準出力へ記録します。
+
+```json
+{
+  "event_type": "message_started",
+  "experiment_id": "reaction-20260704T120000Z",
+  "scenario": "fair-c100",
+  "tenant": "B",
+  "phase": "probe",
+  "sequence": 12,
+  "sqs_sent_ms": 1783140000000,
+  "handler_started_ms": 1783140000234,
+  "dwell_ms": 234,
+  "work_ms": 2000
+}
+```
+
+`dwell_ms`は、SQSが付与した`SentTimestamp`からLambdaハンドラー開始までの時間です。ログ出力後は`work_ms`だけ`time.Sleep`し、メッセージを意図的にin-flightへ保持します。
+
+## 検証1：バースト後の反応時間
+
+`fair-c100`と`baseline-c100`へ同じ負荷を送ります。
+
+```mermaid
+sequenceDiagram
+    participant R as Experiment CLI
+    participant A as Tenant A
+    participant Q as fair-c100 / baseline-c100
+    participant BC as Tenant B・C probes
+    participant L as Consumer Lambda
+
+    R->>Q: 20テナントの均等なウォームアップ負荷
+    Q->>L: 最大100並列で処理
+    R->>R: キューが空になるまで待機
+    R->>A: バースト開始
+    A->>Q: Aを5,000件送信
+    loop 100ms間隔
+        BC->>Q: B・Cを交互に送信
+    end
+    Q->>L: メッセージを配信
+    L->>L: dwell timeを記録して2秒処理
+    Note over Q,L: fair-c100ではAがnoisyと判定された後にB・Cを優先
+```
+
+見る値は次のとおりです。
+
+- バースト開始後のB・Cの`dwell_ms`時系列
+- B・Cのdwell timeが平常範囲へ戻るまでの時間
+- `fair-c100`と`baseline-c100`のp50・p95
+- Aのバックログが残っているのにB・Cが先に処理されたか
+- `ApproximateNumberOfNoisyGroups`が0より大きくなったか
+
+CloudWatchのSQSメトリクスは1分粒度なので、秒単位の反応時間にはConsumerログを使います。`ApproximateNumberOfNoisyGroups`は補助証拠です。
+
+実行例：
+
+```bash
+build/experiment run-reaction \
+  --config build/experiment-config.json \
+  --burst 5000 \
+  --probes 300 \
+  --probe-interval 100ms \
+  --work-ms 2000
+```
+
+1回の結果だけで断定せず、キューを空にした状態から5〜10回実行し、反応時間の中央値とp95を比較してください。
+
+## 検証2：最大同時実行数29での挙動
+
+`fair-c29`と`baseline-c29`を使用します。`BatchSize=1`かつ最大29並列なので、同一テナントAのin-flightは30件へ到達できません。
+
+ただし、Aが29スロットを長時間占有すると、Aの処理時間シェアはほぼ100%になります。この場合はProcessing-time share経路でnoisy tenantと判定される可能性があります。そのため、短時間試験と長時間試験に分けます。
+
+```mermaid
+flowchart LR
+    Load["Aを大量送信<br/>B・Cを継続送信"] --> Limit["Maximum Concurrency = 29<br/>BatchSize = 1"]
+    Limit --> Short["短時間試験<br/>約15秒"]
+    Limit --> Long["長時間試験<br/>約120秒"]
+    Short --> CountResult["30件条件を満たせない期間の<br/>fair / baselineを比較"]
+    Long --> TimeResult["Processing-time経路による<br/>後発の平準化を観測"]
+```
+
+### 2-A：短時間試験
+
+```bash
+build/experiment run-low \
+  --mode short \
+  --config build/experiment-config.json
+```
+
+確認する内容：
+
+- Lambda最大同時実行数が29以下である
+- SQSのin-flightが概ね29以下である
+- Concurrency share経路の「自身が30件以上」を満たしていない
+- 短い観測期間でB・Cのdwell timeに改善が現れるか
+
+これは「Concurrency share経路が使えない状態」の検証です。Fair Queuesが絶対に動かないことを保証する試験ではありません。
+
+### 2-B：長時間試験
+
+```bash
+build/experiment run-low \
+  --mode long \
+  --config build/experiment-config.json
+```
+
+長時間継続した後に`fair-c29`だけB・Cのdwell timeが改善した場合、Processing-time share経路が働いた可能性を示します。AWS内部の集計窓は非公開なので、`ApproximateNumberOfNoisyGroups`とbaselineとの差を合わせて判断します。
+
+## 必要なもの
+
+- Docker
+- Dev Container対応エディタ、またはDocker Compose
+- 実AWS検証時に利用できるAWS認証情報
+- Lambda同時実行クォータ
+
+デフォルトでは4関数に合計278のReserved Concurrencyを設定し、各イベントソースの上限より5多く確保します。Lambdaが要求する未予約同時実行枠100も必要になるため、アカウントの同時実行クォータは少なくとも378必要です。クォータが不足する場合は`reserve_concurrency=false`で構築できますが、他ワークロードの影響を受けやすくなります。
+
+実験CLIを実行するIAM主体には、対象キューへの以下の権限が必要です。
+
+- `sqs:SendMessage`
+- `sqs:GetQueueAttributes`
+- `sqs:PurgeQueue`
+- CloudWatch Logsの`StartQuery`と`GetQueryResults`
+
+## コンテナ内でのテストとビルド
+
+```bash
+cd /workspace
+make tidy
+make test
+make build
+```
+
+生成物：
+
+```text
+build/
+├── experiment
+└── lambda/
+    ├── bootstrap
+    └── consumer.zip
+```
+
+## 実AWSへのデプロイ
+
+`docker-compose.yml`の初期値はMinistack用のmock認証情報です。実AWSを操作するターミナルではmock値を解除し、利用するAWSプロファイルを設定します。
+
+```bash
+unset AWS_ACCESS_KEY_ID AWS_SECRET_ACCESS_KEY AWS_SESSION_TOKEN AWS_ENDPOINT
+export AWS_REGION=ap-northeast-1
+
+aws configure sso --profile fairqueue-verification
+export AWS_PROFILE=fairqueue-verification
+aws sso login --profile "$AWS_PROFILE"
+aws sts get-caller-identity
+```
+
+この操作でプロファイルはコンテナ内の`/root/.aws`へ作成されます。コンテナを作り直すとプロファイルも消えるため、必要に応じてホストの`~/.aws`を`/root/.aws`へマウントして永続化してください。
+
+認証確認後、コンテナ内でTerraformを実行します。
+
+```bash
+make build
+
+terraform -chdir=terraform init
+terraform -chdir=terraform plan
+terraform -chdir=terraform apply
+
+terraform -chdir=terraform output -json experiment_config \
+  > build/experiment-config.json
+```
+
+設定を変更する場合：
+
+```bash
+cp terraform/terraform.tfvars.example terraform/terraform.tfvars
+```
+
+## 結果の回収
+
+実験終了時に、CLIがmanifestのパスを表示します。
+
+```bash
+build/experiment collect \
+  --config build/experiment-config.json \
+  --manifest results/<experiment-id>/manifest.json
+```
+
+次のファイルが生成されます。
+
+```text
+results/<experiment-id>/
+├── manifest.json
+├── events.csv
+├── summary.json
+├── observation-summary.json
+└── recovery-estimate.json
+```
+
+- `events.csv`：メッセージ単位の受信開始時刻とdwell time。LT用の時系列グラフの入力
+- `summary.json`：キューが空になるまでの全期間について、シナリオ・テナントごとの件数、p50、p95、最大dwell time
+- `observation-summary.json`：バースト開始からプローブ送信終了までの観測窓だけを集計。短時間試験では、後からProcessing-time経路が働いた可能性のあるデータを混ぜずに比較できる
+- `recovery-estimate.json`：観測窓内でB・Cのdwell timeが一度`2 × work_ms`を超えた後、20件中16件以上がしきい値以内へ戻った最初の時刻。この判定は比較用の運用上の定義であり、AWS内部の検出時刻そのものではない
+
+CloudWatch Logsの到着が遅れて一部件数が不足した場合は、数分待ってから同じ`collect`コマンドを再実行できます。
+
+## 再実行とキューの初期化
+
+実験コマンドは、対象となる2つのキューが空でない場合は開始しません。処理完了を待てない場合のみpurgeします。
+
+```bash
+build/experiment purge --config build/experiment-config.json
+```
+
+SQSの`PurgeQueue`は連続実行に制限があるため、purge直後は60秒以上空けてください。
+
+## Terraformの削除
+
+```bash
+terraform -chdir=terraform destroy
+```
+
+DLQにメッセージが残っていても、Terraformによるキュー削除は可能です。実験結果のローカルCSVは`terraform destroy`では削除されません。
+
+## 参考資料
+
+- [How Amazon SQS fair queues work](https://docs.aws.amazon.com/AWSSimpleQueueService/latest/SQSDeveloperGuide/sqs-fair-queues-detailed.html)
+- [Available CloudWatch metrics for Amazon SQS](https://docs.aws.amazon.com/AWSSimpleQueueService/latest/SQSDeveloperGuide/sqs-available-cloudwatch-metrics.html)
+- [Creating and configuring an Amazon SQS event source mapping](https://docs.aws.amazon.com/lambda/latest/dg/services-sqs-configure.html)
+- [Using the message group ID with Amazon SQS queues](https://docs.aws.amazon.com/AWSSimpleQueueService/latest/SQSDeveloperGuide/using-messagegroupid-property.html)

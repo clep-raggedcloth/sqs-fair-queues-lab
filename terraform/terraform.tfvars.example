@@ -1,0 +1,6 @@
+aws_region  = "ap-northeast-1"
+project_name = "sqs-fair-queue-lt"
+
+# Set false when the account concurrency quota cannot accommodate 278 reserved
+# executions plus the required unreserved concurrency pool.
+reserve_concurrency = true

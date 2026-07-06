@@ -38,8 +38,8 @@ AWSは分散システムであり、しきい値付近の判定は近似です�
 | `baseline-c100` | なし | 100 | `fair-c100`の比較対象 |
 | `fair-c29` | テナントID | 29 | 30件境界の直前を観測するFair Queues |
 | `baseline-c29` | なし | 29 | `fair-c29`の比較対象 |
-| `fair-c30` | テナントID | 30 | 30件境界を観測するFair Queues |
-| `baseline-c30` | なし | 30 | `fair-c30`の比較対象 |
+| `fair-c30` | テナントID | 30 | Lambda上限30での挙動を探索するFair Queues。A自身の30件到達は前提にしない |
+| `baseline-c30` | なし | 30 | 探索的な`fair-c30`の比較対象 |
 
 キュー自体はすべてStandard Queueです。`fair-*`と`baseline-*`の違いは、実験CLIが送信時に`MessageGroupId`を付けるかどうかです。
 
@@ -179,10 +179,18 @@ sequenceDiagram
 - バースト開始後のB・Cの`dwell_ms`時系列
 - バースト前baselineから算出した平常範囲へ、B・Cの両方が戻るまでの時間
 - `fair-c100`と`baseline-c100`のp50・p95
+- Aの`handler-active estimate`が30件以上となったか、およびその継続時間
+- Aの`handler-active estimate / ApproximateNumberOfMessagesNotVisible` proxyが10%を超えたか
 - Aのバックログが残っているのにB・Cが先に処理されたか
 - `ApproximateNumberOfNoisyGroups`が0より大きくなったか
 
-CloudWatchのSQSメトリクスは1分粒度なので、秒単位の反応時間にはConsumerログを使います。`ApproximateNumberOfNoisyGroups`は補助証拠です。
+`BatchSize=1`なので、collectorは各メッセージの半開区間`[handler_started_ms, handler_started_ms + work_ms)`を重ね合わせ、テナント別の同時処理数を再構成します。この区間はメッセージが確実に処理中である部分だけを数えるため、SQS in-flight件数の下限推定です。ハンドラー開始前の受信時間と終了後の削除遅延は含みません。テナント別handler-active件数同士の比率は`handler_active_share`として出力しますが、除外区間がテナントごとに異なり得るため、SQS in-flightシェアの下限とは扱いません。
+
+10%条件との整合性確認には、1秒ごとの`A handler-active / ApproximateNumberOfMessagesNotVisible`を`count_share_proxy`として別途出力します。分母はSQSのApproximate属性なので、これもAWS内部判定値の証明ではなく観測上のproxyです。
+
+30件以上側の代表証拠には`fair-c100`を使用します。デフォルト負荷ではB・Cプローブが100msごとに1件、各2秒処理されるため、定常時に合計約20スロットを使います。そのため`c30`でA自身が30件へ到達することは期待しません。
+
+CloudWatchのSQSメトリクスは1分粒度なので、秒単位の反応時間にはConsumerログを使います。実験CLIはこれとは別に、実験中の`GetQueueAttributes`をデフォルト1秒間隔で保存します。属性値自体はApproximateであるため、厳密な上限の証明ではなく観測された短時間ピークの証拠として扱います。取得失敗は0へ変換せず`status=error`の欠測行として保存し、次のtickで再試行します。5回連続で失敗した場合もmanifestと部分CSVを保存してからエラー終了します。`ApproximateNumberOfNoisyGroups`も補助証拠です。
 
 実行例：
 
@@ -198,7 +206,7 @@ build/experiment run-reaction \
 
 1回の結果だけで断定せず、キューを空にした状態から5〜10回実行し、反応時間の中央値とp95を比較してください。
 
-## 29/30境界試験
+## 29/30境界試験（探索的）
 
 同じ短時間負荷をMaximum Concurrency 29と30で別々に実行します。
 
@@ -212,7 +220,7 @@ build/experiment run-boundary \
   --config build/experiment-config.json
 ```
 
-各条件を5〜10回実行し、Fair/Baseline差、B・Cの回復時間、SQS in-flight、`ApproximateNumberOfNoisyGroups`を比較します。Maximum ConcurrencyとA自身のin-flightは同一ではないため、29/30の差だけでAWS内部の判定経路を断定しません。
+各条件を5〜10回実行し、Fair/Baseline差、B・Cの回復時間、SQS in-flight、`ApproximateNumberOfNoisyGroups`を比較します。ただし、これはLambda Maximum Concurrencyの境界に対する探索的試験です。Maximum ConcurrencyとA自身のSQS in-flightは同一ではなく、デフォルトではB・Cが約20スロットを使うため、`c30`を「Aが30件以上」の証拠には使用しません。Concurrency share経路が成立し得る側は、`fair-c100`でAの`handler-active estimate >= 30`を確認して代表させます。
 
 ## 検証2：最大同時実行数29での挙動
 
@@ -240,11 +248,11 @@ build/experiment run-low \
 確認する内容：
 
 - Lambda最大同時実行数が29以下である
-- SQSのin-flightが概ね29以下である
-- SQSのin-flightメトリクス上でも30未満で推移したか
+- 1秒間隔の`GetQueueAttributes`観測でSQSのApproximate in-flightが概ね29以下である
+- Aの`handler-active estimate`が30未満で推移したか
 - 短い観測期間でB・Cのdwell timeに改善が現れるか
 
-これは「Concurrency share経路の30件条件を満たしにくい構成での早期挙動」を見る試験です。Fair Queuesが動かないことや、AWS内部の判定経路を直接証明する試験ではありません。
+これは「Concurrency share経路の30件条件を満たしにくい構成での早期挙動」を見る試験です。`GetQueueAttributes`はApproximateであり、イベントソースマッピングがLambda呼び出し前に保持するメッセージもあり得るため、「常に厳密に30未満」とは表現しません。Fair Queuesが動かないことや、AWS内部の判定経路を直接証明する試験でもありません。
 
 ### 2-B：長時間試験
 
@@ -342,7 +350,12 @@ build/experiment collect \
 ```text
 results/<experiment-id>/
 ├── manifest.json
+├── queue-depth-samples.csv
+├── queue-depth-aligned.csv
+├── concurrency-share-proxy.csv
 ├── events.csv
+├── handler-active-estimate.csv
+├── handler-active-summary.json
 ├── summary.json
 ├── observation-summary.json
 ├── recovery-estimate.json
@@ -350,6 +363,11 @@ results/<experiment-id>/
 ```
 
 - `events.csv`：メッセージ単位の受信開始時刻とdwell time。LT用の時系列グラフの入力
+- `handler-active-estimate.csv`：`handler_started_ms`から`work_ms`の終了までを重ね合わせた、シナリオ・テナント別の同時処理数と`handler_active_share`の時系列。`_all`は全テナント合計
+- `handler-active-summary.json`：テナント別の推定同時処理数・handler-active比率の最大値と継続時間。件数は確実に処理中だった区間による下限推定だが、比率はSQS in-flightシェアの下限ではない
+- `queue-depth-samples.csv`：バースト送信直前からキューが空になるまで、SQS `GetQueueAttributes`の絶対時刻・visible・not-visible・取得状態をデフォルト1秒間隔で保存。値はApproximateで、取得失敗時の数値欄は空欄。manifestにも実行状態とサンプル総数・エラー数を保存
+- `queue-depth-aligned.csv`：collectorが最初のAメッセージのSQS `SentTimestamp`を共通のt=0としてサンプルを補正。ログがない場合のみmanifest時刻へfallbackし、`elapsed_source`へ基準を保存
+- `concurrency-share-proxy.csv`：同時刻のA handler-active件数とApproximate not-visibleからcount/share proxyを計算。30件条件、10% proxy、両方の成立フラグを保存
 - `summary.json`：キューが空になるまでの全期間について、シナリオ・テナント・phaseごとの件数、p50、p95、最大dwell time
 - `observation-summary.json`：バースト開始からプローブ送信終了までに送信されたメッセージを集計。処理開始が観測窓より後になった遅延メッセージも含む
 - `recovery-estimate.json`：最初のAメッセージのSQS `SentTimestamp`をt=0とし、B・Cそれぞれについてbaseline p95から平常範囲を算出。各テナントの直近10件中8件以上が範囲内となり、B・Cの両方が回復した時刻を保存する

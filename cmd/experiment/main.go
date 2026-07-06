@@ -5,6 +5,7 @@ import (
 	"flag"
 	"fmt"
 	"os"
+	"path/filepath"
 	"sort"
 	"sync"
 	"time"
@@ -18,16 +19,17 @@ import (
 )
 
 type runOptions struct {
-	configPath       string
-	resultsDir       string
-	workMS           int
-	burstMessages    int
-	probeMessages    int
-	probeInterval    time.Duration
-	baselineDuration time.Duration
-	warmup           int
-	sendWorkers      int
-	mode             string
+	configPath          string
+	resultsDir          string
+	workMS              int
+	burstMessages       int
+	probeMessages       int
+	probeInterval       time.Duration
+	queueSampleInterval time.Duration
+	baselineDuration    time.Duration
+	warmup              int
+	sendWorkers         int
+	mode                string
 }
 
 func main() {
@@ -75,6 +77,7 @@ func baseRunFlags(name string, args []string) (*flag.FlagSet, *runOptions) {
 	fs.IntVar(&opts.burstMessages, "burst", 5000, "Tenant A burst messages per scenario")
 	fs.IntVar(&opts.probeMessages, "probes", 300, "Quiet-tenant probe messages per scenario")
 	fs.DurationVar(&opts.probeInterval, "probe-interval", 100*time.Millisecond, "Interval between B/C probes")
+	fs.DurationVar(&opts.queueSampleInterval, "queue-sample-interval", time.Second, "Interval between direct SQS queue-depth observations")
 	fs.DurationVar(&opts.baselineDuration, "baseline-duration", 20*time.Second, "Duration of the pre-burst B/C baseline phase")
 	fs.IntVar(&opts.warmup, "warmup", 200, "Balanced warm-up messages per scenario")
 	fs.IntVar(&opts.sendWorkers, "send-workers", 16, "Concurrent SendMessageBatch workers")
@@ -141,8 +144,8 @@ func executeRun(parent context.Context, opts runOptions, concurrency int, kind s
 	if opts.burstMessages < 1 || opts.probeMessages < 1 {
 		return fmt.Errorf("burst and probes must be at least 1")
 	}
-	if opts.probeInterval <= 0 || opts.baselineDuration < 0 {
-		return fmt.Errorf("probe-interval must be positive and baseline-duration must not be negative")
+	if opts.probeInterval <= 0 || opts.queueSampleInterval <= 0 || opts.baselineDuration < 0 {
+		return fmt.Errorf("probe-interval and queue-sample-interval must be positive and baseline-duration must not be negative")
 	}
 	config, err := experiment.LoadConfig(opts.configPath)
 	if err != nil {
@@ -181,13 +184,77 @@ func executeRun(parent context.Context, opts runOptions, concurrency int, kind s
 	if err := sender.WaitForDrain(ctx, scenarios); err != nil {
 		return fmt.Errorf("wait for baseline drain: %w", err)
 	}
-	timings, err := sendMeasurement(ctx, sender, scenarios, experimentID, opts)
-	if err != nil {
-		return err
+	type sampleResult struct {
+		samples []experiment.QueueDepthSample
+		err     error
 	}
-	fmt.Println("all messages accepted; waiting for both queues to drain")
-	if err := sender.WaitForDrain(ctx, scenarios); err != nil {
-		return fmt.Errorf("wait for experiment drain: %w", err)
+	type measurementResult struct {
+		timings map[string]experiment.ScenarioTiming
+		err     error
+	}
+	runCtx, stopRun := context.WithCancel(ctx)
+	defer stopRun()
+	sampleResultCh := make(chan sampleResult, 1)
+	go func() {
+		samples, err := sender.SampleQueueDepths(runCtx, scenarios, opts.queueSampleInterval)
+		sampleResultCh <- sampleResult{samples: samples, err: err}
+	}()
+	measurementResultCh := make(chan measurementResult, 1)
+	go func() {
+		timings, err := sendMeasurement(runCtx, sender, scenarios, experimentID, opts)
+		measurementResultCh <- measurementResult{timings: timings, err: err}
+	}()
+
+	var sampled sampleResult
+	var timings map[string]experiment.ScenarioTiming
+	var runErr error
+	select {
+	case sampled = <-sampleResultCh:
+		if sampled.err != nil {
+			runErr = fmt.Errorf("sample SQS queue depths: %w", sampled.err)
+		} else {
+			runErr = fmt.Errorf("SQS queue-depth sampler stopped unexpectedly")
+		}
+		stopRun()
+		measured := <-measurementResultCh
+		timings = measured.timings
+	case measured := <-measurementResultCh:
+		timings = measured.timings
+		if measured.err != nil {
+			runErr = measured.err
+			stopRun()
+			sampled = <-sampleResultCh
+			break
+		}
+
+		fmt.Println("all messages accepted; waiting for both queues to drain")
+		drainResultCh := make(chan error, 1)
+		go func() { drainResultCh <- sender.WaitForDrain(runCtx, scenarios) }()
+		select {
+		case sampled = <-sampleResultCh:
+			if sampled.err != nil {
+				runErr = fmt.Errorf("sample SQS queue depths: %w", sampled.err)
+			} else {
+				runErr = fmt.Errorf("SQS queue-depth sampler stopped unexpectedly")
+			}
+			stopRun()
+			<-drainResultCh
+		case err := <-drainResultCh:
+			if err != nil {
+				runErr = fmt.Errorf("wait for experiment drain: %w", err)
+			}
+			stopRun()
+			sampled = <-sampleResultCh
+			if sampled.err != nil && runErr == nil {
+				runErr = fmt.Errorf("sample SQS queue depths: %w", sampled.err)
+			}
+		}
+	}
+	queueSampleErrorCount := 0
+	for _, sample := range sampled.samples {
+		if sample.Status == experiment.QueueSampleStatusError {
+			queueSampleErrorCount++
+		}
 	}
 
 	names := make([]string, 0, len(scenarios))
@@ -198,20 +265,36 @@ func executeRun(parent context.Context, opts runOptions, concurrency int, kind s
 	manifest := experiment.Manifest{
 		ExperimentID: experimentID, Kind: kind, Mode: opts.mode, Scenarios: names,
 		StartedAt: startedAt.Format(time.RFC3339Nano), CompletedAt: time.Now().UTC().Format(time.RFC3339Nano),
-		WorkMS: opts.workMS, BurstMessages: opts.burstMessages, ProbeMessages: opts.probeMessages,
-		ProbeIntervalMS:     int(opts.probeInterval.Milliseconds()),
-		ObservationWindowMS: opts.probeMessages * int(opts.probeInterval.Milliseconds()),
-		WarmupMessages:      opts.warmup,
-		BaselineDurationMS:  int(opts.baselineDuration.Milliseconds()),
-		MaximumConcurrency:  concurrency,
-		ScenarioTimings:     timings,
+		RunStatus: "complete",
+		WorkMS:    opts.workMS, BurstMessages: opts.burstMessages, ProbeMessages: opts.probeMessages,
+		ProbeIntervalMS:       int(opts.probeInterval.Milliseconds()),
+		QueueSampleIntervalMS: int(opts.queueSampleInterval.Milliseconds()),
+		QueueSampleCount:      len(sampled.samples),
+		QueueSampleErrorCount: queueSampleErrorCount,
+		ObservationWindowMS:   opts.probeMessages * int(opts.probeInterval.Milliseconds()),
+		WarmupMessages:        opts.warmup,
+		BaselineDurationMS:    int(opts.baselineDuration.Milliseconds()),
+		MaximumConcurrency:    concurrency,
+		ScenarioTimings:       timings,
+	}
+	if runErr != nil {
+		manifest.RunStatus = "failed"
+		manifest.RunError = runErr.Error()
 	}
 	path, err := experiment.SaveManifest(opts.resultsDir, manifest)
 	if err != nil {
 		return err
 	}
+	queueSamplesPath, err := experiment.WriteQueueDepthSamples(opts.resultsDir, manifest, sampled.samples)
+	if err != nil {
+		return err
+	}
 	fmt.Println("manifest:", path)
+	fmt.Println("queue-depth samples:", queueSamplesPath)
 	fmt.Printf("collect with: build/experiment collect --config %s --manifest %s\n", opts.configPath, path)
+	if runErr != nil {
+		return fmt.Errorf("experiment failed (partial results saved): %w", runErr)
+	}
 	return nil
 }
 
@@ -325,7 +408,7 @@ func sendMeasurement(ctx context.Context, sender *experiment.Sender, scenarios m
 		return nil
 	})
 	if err != nil {
-		return nil, err
+		return timings, err
 	}
 	return timings, nil
 }
@@ -384,6 +467,22 @@ func collectCommand(args []string) error {
 	if err != nil {
 		return err
 	}
+	handlerActivePath, handlerActiveSummaryPath, err := experiment.WriteHandlerActiveEstimates(*resultsDir, manifest, rows)
+	if err != nil {
+		return err
+	}
+	queueSamplesPath := filepath.Join(*resultsDir, manifest.ExperimentID, "queue-depth-samples.csv")
+	queueAlignedPath := "not generated (raw queue samples are unavailable)"
+	shareProxyPath := "not generated (raw queue samples are unavailable)"
+	queueSamples, err := experiment.ReadQueueDepthSamples(queueSamplesPath)
+	if err == nil {
+		queueAlignedPath, shareProxyPath, err = experiment.WriteAlignedQueueEvidence(*resultsDir, manifest, rows, queueSamples)
+		if err != nil {
+			return err
+		}
+	} else if !os.IsNotExist(err) {
+		return fmt.Errorf("read queue-depth samples: %w", err)
+	}
 	summaryPath, err := experiment.WriteSummary(*resultsDir, manifest, rows)
 	if err != nil {
 		return err
@@ -404,7 +503,7 @@ func collectCommand(args []string) error {
 	if err != nil {
 		return err
 	}
-	fmt.Printf("collected %d message starts\nevents: %s\nfull summary: %s\nobservation summary: %s\nrecovery estimate: %s\nmetrics: %s\n", len(rows), csvPath, summaryPath, observationSummaryPath, recoveryPath, metricsPath)
+	fmt.Printf("collected %d message starts\nevents: %s\nhandler-active estimate: %s\nhandler-active summary: %s\naligned queue-depth samples: %s\nconcurrency-share proxy: %s\nfull summary: %s\nobservation summary: %s\nrecovery estimate: %s\nmetrics: %s\n", len(rows), csvPath, handlerActivePath, handlerActiveSummaryPath, queueAlignedPath, shareProxyPath, summaryPath, observationSummaryPath, recoveryPath, metricsPath)
 	return nil
 }
 

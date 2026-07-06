@@ -9,21 +9,26 @@ import (
 )
 
 type Manifest struct {
-	ExperimentID        string                    `json:"experiment_id"`
-	Kind                string                    `json:"kind"`
-	Mode                string                    `json:"mode,omitempty"`
-	Scenarios           []string                  `json:"scenarios"`
-	StartedAt           string                    `json:"started_at"`
-	CompletedAt         string                    `json:"completed_at"`
-	WorkMS              int                       `json:"work_ms"`
-	BurstMessages       int                       `json:"burst_messages_per_scenario"`
-	ProbeMessages       int                       `json:"probe_messages_per_scenario"`
-	ProbeIntervalMS     int                       `json:"probe_interval_ms"`
-	ObservationWindowMS int                       `json:"observation_window_ms"`
-	WarmupMessages      int                       `json:"warmup_messages_per_scenario"`
-	BaselineDurationMS  int                       `json:"baseline_duration_ms"`
-	MaximumConcurrency  int                       `json:"maximum_concurrency"`
-	ScenarioTimings     map[string]ScenarioTiming `json:"scenario_timings,omitempty"`
+	ExperimentID          string                    `json:"experiment_id"`
+	Kind                  string                    `json:"kind"`
+	Mode                  string                    `json:"mode,omitempty"`
+	RunStatus             string                    `json:"run_status,omitempty"`
+	RunError              string                    `json:"run_error,omitempty"`
+	Scenarios             []string                  `json:"scenarios"`
+	StartedAt             string                    `json:"started_at"`
+	CompletedAt           string                    `json:"completed_at"`
+	WorkMS                int                       `json:"work_ms"`
+	BurstMessages         int                       `json:"burst_messages_per_scenario"`
+	ProbeMessages         int                       `json:"probe_messages_per_scenario"`
+	ProbeIntervalMS       int                       `json:"probe_interval_ms"`
+	QueueSampleIntervalMS int                       `json:"queue_sample_interval_ms"`
+	QueueSampleCount      int                       `json:"queue_sample_count"`
+	QueueSampleErrorCount int                       `json:"queue_sample_error_count"`
+	ObservationWindowMS   int                       `json:"observation_window_ms"`
+	WarmupMessages        int                       `json:"warmup_messages_per_scenario"`
+	BaselineDurationMS    int                       `json:"baseline_duration_ms"`
+	MaximumConcurrency    int                       `json:"maximum_concurrency"`
+	ScenarioTimings       map[string]ScenarioTiming `json:"scenario_timings,omitempty"`
 }
 
 type ScenarioTiming struct {

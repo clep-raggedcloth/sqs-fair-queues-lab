@@ -188,7 +188,28 @@ func (s *Sender) queueDepth(ctx context.Context, scenario Scenario) (int, int, e
 	if err != nil {
 		return 0, 0, err
 	}
-	visible, _ := strconv.Atoi(out.Attributes[string(types.QueueAttributeNameApproximateNumberOfMessages)])
-	inFlight, _ := strconv.Atoi(out.Attributes[string(types.QueueAttributeNameApproximateNumberOfMessagesNotVisible)])
+	visible, err := parseQueueAttribute(out.Attributes, types.QueueAttributeNameApproximateNumberOfMessages)
+	if err != nil {
+		return 0, 0, err
+	}
+	inFlight, err := parseQueueAttribute(out.Attributes, types.QueueAttributeNameApproximateNumberOfMessagesNotVisible)
+	if err != nil {
+		return 0, 0, err
+	}
 	return visible, inFlight, nil
+}
+
+func parseQueueAttribute(attributes map[string]string, name types.QueueAttributeName) (int, error) {
+	raw, ok := attributes[string(name)]
+	if !ok {
+		return 0, fmt.Errorf("queue attribute %s is missing", name)
+	}
+	value, err := strconv.Atoi(raw)
+	if err != nil {
+		return 0, fmt.Errorf("queue attribute %s has invalid value %q: %w", name, raw, err)
+	}
+	if value < 0 {
+		return 0, fmt.Errorf("queue attribute %s has negative value %d", name, value)
+	}
+	return value, nil
 }

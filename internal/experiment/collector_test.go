@@ -114,3 +114,83 @@ func TestWriteRecoveryEstimatesUsesBaselineAndFirstASentTimestamp(t *testing.T) 
 		t.Fatalf("unexpected recovery estimate: %+v", got)
 	}
 }
+
+func TestBuildHandlerActiveEstimatesReconstructsTenantConcurrency(t *testing.T) {
+	start := time.Unix(1000, 0).UTC()
+	manifest := Manifest{
+		ExperimentID: "exp", Scenarios: []string{"fair-c100"},
+		StartedAt: start.Format(time.RFC3339Nano),
+		ScenarioTimings: map[string]ScenarioTiming{
+			"fair-c100": {BurstStartedAt: start.Format(time.RFC3339Nano)},
+		},
+	}
+	rows := []consumer.EventLog{
+		{Scenario: "fair-c100", Tenant: "A", HandlerStartMS: start.UnixMilli(), WorkMS: 2000},
+		{Scenario: "fair-c100", Tenant: "A", HandlerStartMS: start.Add(time.Second).UnixMilli(), WorkMS: 2000},
+		{Scenario: "fair-c100", Tenant: "B", HandlerStartMS: start.Add(time.Second).UnixMilli(), WorkMS: 1000},
+	}
+	points, summaries, err := BuildHandlerActiveEstimates(manifest, rows)
+	if err != nil {
+		t.Fatal(err)
+	}
+	findPoint := func(elapsed int64, tenant string) (HandlerActivePoint, bool) {
+		for _, point := range points {
+			if point.ElapsedMS == elapsed && point.Tenant == tenant {
+				return point, true
+			}
+		}
+		return HandlerActivePoint{}, false
+	}
+	if point, ok := findPoint(1000, "A"); !ok || point.EstimatedActiveMessages != 2 {
+		t.Fatalf("A at 1000ms = %+v, found=%v", point, ok)
+	}
+	if point, ok := findPoint(1000, allTenants); !ok || point.EstimatedActiveMessages != 3 {
+		t.Fatalf("total at 1000ms = %+v, found=%v", point, ok)
+	}
+	if point, ok := findPoint(2000, "A"); !ok || point.EstimatedActiveMessages != 1 {
+		t.Fatalf("A at half-open boundary = %+v, found=%v", point, ok)
+	}
+	for _, summary := range summaries {
+		if summary.Scenario == "fair-c100" && summary.Tenant == "A" {
+			if summary.PeakEstimatedActive != 2 || summary.DurationAtOrAbove30MS != 0 {
+				t.Fatalf("unexpected A summary: %+v", summary)
+			}
+			return
+		}
+	}
+	t.Fatal("A summary was not generated")
+}
+
+func TestBuildHandlerActiveEstimatesSummarizesCountAndShareCriterion(t *testing.T) {
+	start := time.Unix(2000, 0).UTC()
+	manifest := Manifest{
+		ExperimentID: "exp", Scenarios: []string{"fair-c100"}, StartedAt: start.Format(time.RFC3339Nano),
+	}
+	rows := make([]consumer.EventLog, 0, 31)
+	for i := 0; i < 30; i++ {
+		rows = append(rows, consumer.EventLog{
+			Scenario: "fair-c100", Tenant: "A", Phase: "burst", SQSSentMS: start.UnixMilli(),
+			HandlerStartMS: start.UnixMilli(), WorkMS: 1000,
+		})
+	}
+	rows = append(rows, consumer.EventLog{
+		Scenario: "fair-c100", Tenant: "B", Phase: "probe", HandlerStartMS: start.UnixMilli(), WorkMS: 1000,
+	})
+	_, summaries, err := BuildHandlerActiveEstimates(manifest, rows)
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, summary := range summaries {
+		if summary.Tenant != "A" {
+			continue
+		}
+		if summary.PeakEstimatedActive != 30 || summary.PeakHandlerActiveShare <= 0.10 {
+			t.Fatalf("unexpected peak summary: %+v", summary)
+		}
+		if summary.DurationAtOrAbove30MS != 1000 || summary.DurationMeetingHandlerActiveCountAndShareMS != 1000 {
+			t.Fatalf("unexpected criterion duration: %+v", summary)
+		}
+		return
+	}
+	t.Fatal("A summary was not generated")
+}

@@ -186,7 +186,7 @@ sequenceDiagram
 
 `BatchSize=1`なので、collectorは各メッセージの半開区間`[handler_started_ms, handler_started_ms + work_ms)`を重ね合わせ、テナント別の同時処理数を再構成します。この区間はメッセージが確実に処理中である部分だけを数えるため、SQS in-flight件数の下限推定です。ハンドラー開始前の受信時間と終了後の削除遅延は含みません。テナント別handler-active件数同士の比率は`handler_active_share`として出力しますが、除外区間がテナントごとに異なり得るため、SQS in-flightシェアの下限とは扱いません。
 
-10%条件との整合性確認には、1秒ごとの`A handler-active / ApproximateNumberOfMessagesNotVisible`を`count_share_proxy`として別途出力します。分母はSQSのApproximate属性なので、これもAWS内部判定値の証明ではなく観測上のproxyです。
+10%条件との整合性確認には、1秒ごとの`A handler-active / ApproximateNumberOfMessagesNotVisible`を`count_share_proxy`として別途出力します。分子はハンドラー開始前のin-flightメッセージを含まない下限推定で、分母はSQSのApproximate属性です。そのため`criteria_proxy_met=true`は観測値がConcurrency share条件と整合したことを示す強い補助証拠として扱いますが、AWS内部判定の直接的な証明ではありません。`false`の場合も、AWS内部で条件を満たさなかったとは判断しません。
 
 30件以上側の代表証拠には`fair-c100`を使用します。デフォルト負荷ではB・Cプローブが100msごとに1件、各2秒処理されるため、定常時に合計約20スロットを使います。そのため`c30`でA自身が30件へ到達することは期待しません。
 
@@ -204,7 +204,34 @@ build/experiment run-reaction \
   --work-ms 2000
 ```
 
-1回の結果だけで断定せず、キューを空にした状態から5〜10回実行し、反応時間の中央値とp95を比較してください。
+1回の結果だけで断定せず、キューを空にした状態から5〜10回実行し、反応時間の中央値とp95を比較してください。各実行で`collect`まで完了した後、次の例で検証1の`recovery-estimate.json`をシナリオ別に集計できます。
+
+```bash
+jq -s '
+  def pct($p): sort | .[(((length - 1) * $p) | floor)];
+
+  add
+  | group_by(.scenario)
+  | map(
+      . as $runs
+      | [$runs[]
+          | select(.recovery_observed == true and .recovery_latency_ms != null)
+          | .recovery_latency_ms] as $values
+      | {
+          scenario: $runs[0].scenario,
+          total_runs: ($runs | length),
+          recovered_runs: ($values | length),
+          unrecovered_runs: (($runs | length) - ($values | length)),
+          median_ms: (if ($values | length) > 0 then ($values | pct(0.50)) else null end),
+          p95_ms: (if ($values | length) > 0 then ($values | pct(0.95)) else null end),
+          min_ms: (if ($values | length) > 0 then ($values | min) else null end),
+          max_ms: (if ($values | length) > 0 then ($values | max) else null end)
+        }
+    )
+' results/reaction-*/recovery-estimate.json
+```
+
+中央値・p95は回復を観測できた試行だけから計算されるため、`total_runs`、`recovered_runs`、`unrecovered_runs`を必ず併記してください。回復しなかった試行を無視して中央値だけを比較すると、結果を良い側へ偏らせます。
 
 ## 29/30境界試験（探索的）
 
@@ -367,11 +394,13 @@ results/<experiment-id>/
 - `handler-active-summary.json`：テナント別の推定同時処理数・handler-active比率の最大値と継続時間。件数は確実に処理中だった区間による下限推定だが、比率はSQS in-flightシェアの下限ではない
 - `queue-depth-samples.csv`：バースト送信直前からキューが空になるまで、SQS `GetQueueAttributes`の絶対時刻・visible・not-visible・取得状態をデフォルト1秒間隔で保存。値はApproximateで、取得失敗時の数値欄は空欄。manifestにも実行状態とサンプル総数・エラー数を保存
 - `queue-depth-aligned.csv`：collectorが最初のAメッセージのSQS `SentTimestamp`を共通のt=0としてサンプルを補正。ログがない場合のみmanifest時刻へfallbackし、`elapsed_source`へ基準を保存
-- `concurrency-share-proxy.csv`：同時刻のA handler-active件数とApproximate not-visibleからcount/share proxyを計算。30件条件、10% proxy、両方の成立フラグを保存
+- `concurrency-share-proxy.csv`：同時刻のA handler-active件数とApproximate not-visibleからcount/share proxyを計算。30件条件、10% proxy、両方の成立フラグを保存。`criteria_proxy_met=true`はConcurrency share条件と整合する補助証拠だが、`false`は内部条件が不成立だったことを意味しない
 - `summary.json`：キューが空になるまでの全期間について、シナリオ・テナント・phaseごとの件数、p50、p95、最大dwell time
 - `observation-summary.json`：バースト開始からプローブ送信終了までに送信されたメッセージを集計。処理開始が観測窓より後になった遅延メッセージも含む
 - `recovery-estimate.json`：最初のAメッセージのSQS `SentTimestamp`をt=0とし、B・Cそれぞれについてbaseline p95から平常範囲を算出。各テナントの直近10件中8件以上が範囲内となり、B・Cの両方が回復した時刻を保存する
 - `metrics.json`：SQSのnoisy group・in-flight・quiet group in-flightとLambda同時実行数を1分粒度のMaximumで保存。秒単位の反応時間ではなく補助証拠として使用する
+
+`recovery-estimate.json`の平常範囲の上限（回復しきい値）は、B・Cごとに`max(2 × baseline p95, baseline p95 + 250ms)`で計算します。baselineを取得できなかった場合は`2 × work_ms`へフォールバックします。悪化を観測した後、各テナントの直近10件中8件以上がこのしきい値以下となった最初の窓を回復とし、その窓の最後のメッセージ開始時刻を採用します。`recovery_latency_ms`は悪化検出時点からではなく、Aのバースト開始からB・Cの両方が回復するまでの時間です。このしきい値は本検証の分析用定義であり、AWS Fair Queues内部の判定しきい値ではありません。
 
 CloudWatch Logsまたはメトリクスの到着が遅れて一部件数が不足した場合は、数分待ってから同じ`collect`コマンドを再実行できます。
 

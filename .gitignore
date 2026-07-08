@@ -5,3 +5,6 @@
 /terraform/*.tfstate
 /terraform/*.tfstate.*
 /terraform/terraform.tfvars
+
+# Claude Code
+.claude/settings.local.json

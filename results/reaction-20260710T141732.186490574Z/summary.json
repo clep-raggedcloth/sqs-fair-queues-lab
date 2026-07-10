@@ -1,0 +1,92 @@
+[
+  {
+    "scenario": "baseline-c100",
+    "tenant": "A",
+    "phase": "burst",
+    "count": 9579,
+    "p50_dwell_ms": 110863,
+    "p95_dwell_ms": 207900,
+    "max_dwell_ms": 219148
+  },
+  {
+    "scenario": "baseline-c100",
+    "tenant": "B",
+    "phase": "baseline",
+    "count": 100,
+    "p50_dwell_ms": 16,
+    "p95_dwell_ms": 23,
+    "max_dwell_ms": 44
+  },
+  {
+    "scenario": "baseline-c100",
+    "tenant": "B",
+    "phase": "probe",
+    "count": 11,
+    "p50_dwell_ms": 115500,
+    "p95_dwell_ms": 166393,
+    "max_dwell_ms": 191998
+  },
+  {
+    "scenario": "baseline-c100",
+    "tenant": "C",
+    "phase": "baseline",
+    "count": 100,
+    "p50_dwell_ms": 16,
+    "p95_dwell_ms": 22,
+    "max_dwell_ms": 25
+  },
+  {
+    "scenario": "baseline-c100",
+    "tenant": "C",
+    "phase": "probe",
+    "count": 10,
+    "p50_dwell_ms": 86325,
+    "p95_dwell_ms": 178109,
+    "max_dwell_ms": 199713
+  },
+  {
+    "scenario": "fair-c100",
+    "tenant": "A",
+    "phase": "burst",
+    "count": 8721,
+    "p50_dwell_ms": 99992,
+    "p95_dwell_ms": 207241,
+    "max_dwell_ms": 219216
+  },
+  {
+    "scenario": "fair-c100",
+    "tenant": "B",
+    "phase": "baseline",
+    "count": 100,
+    "p50_dwell_ms": 16,
+    "p95_dwell_ms": 23,
+    "max_dwell_ms": 34
+  },
+  {
+    "scenario": "fair-c100",
+    "tenant": "B",
+    "phase": "probe",
+    "count": 459,
+    "p50_dwell_ms": 79205,
+    "p95_dwell_ms": 133223,
+    "max_dwell_ms": 168317
+  },
+  {
+    "scenario": "fair-c100",
+    "tenant": "C",
+    "phase": "baseline",
+    "count": 100,
+    "p50_dwell_ms": 15,
+    "p95_dwell_ms": 22,
+    "max_dwell_ms": 37
+  },
+  {
+    "scenario": "fair-c100",
+    "tenant": "C",
+    "phase": "probe",
+    "count": 420,
+    "p50_dwell_ms": 82589,
+    "p95_dwell_ms": 135642,
+    "max_dwell_ms": 210379
+  }
+]

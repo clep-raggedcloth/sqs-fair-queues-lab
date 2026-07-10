@@ -197,8 +197,8 @@ CloudWatchのSQSメトリクスは1分粒度なので、秒単位の反応時間
 ```bash
 build/experiment run-reaction \
   --config build/experiment-config.json \
-  --burst 5000 \
-  --probes 300 \
+  --burst 30000 \
+  --probes 6000 \
   --probe-interval 100ms \
   --baseline-duration 20s \
   --work-ms 2000

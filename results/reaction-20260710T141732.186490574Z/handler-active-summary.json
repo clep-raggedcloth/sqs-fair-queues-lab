@@ -1,0 +1,70 @@
+{
+  "semantics": "active-message counts are lower-bound estimates from half-open handler work intervals [handler_started_ms, handler_started_ms + work_ms); handler_active_share is only the composition of these intervals and is not a lower bound for SQS in-flight share",
+  "threshold": 30,
+  "series": [
+    {
+      "scenario": "baseline-c100",
+      "tenant": "A",
+      "peak_estimated_active_messages": 100,
+      "peak_handler_active_share": 1,
+      "duration_at_or_above_30_ms": 221821,
+      "duration_meeting_handler_active_count_and_share_ms": 221821
+    },
+    {
+      "scenario": "baseline-c100",
+      "tenant": "B",
+      "peak_estimated_active_messages": 11,
+      "peak_handler_active_share": 1,
+      "duration_at_or_above_30_ms": 0,
+      "duration_meeting_handler_active_count_and_share_ms": 0
+    },
+    {
+      "scenario": "baseline-c100",
+      "tenant": "C",
+      "peak_estimated_active_messages": 11,
+      "peak_handler_active_share": 1,
+      "duration_at_or_above_30_ms": 0,
+      "duration_meeting_handler_active_count_and_share_ms": 0
+    },
+    {
+      "scenario": "baseline-c100",
+      "tenant": "_all",
+      "peak_estimated_active_messages": 100,
+      "peak_handler_active_share": 1,
+      "duration_at_or_above_30_ms": 221821,
+      "duration_meeting_handler_active_count_and_share_ms": 221821
+    },
+    {
+      "scenario": "fair-c100",
+      "tenant": "A",
+      "peak_estimated_active_messages": 100,
+      "peak_handler_active_share": 1,
+      "duration_at_or_above_30_ms": 222419,
+      "duration_meeting_handler_active_count_and_share_ms": 222419
+    },
+    {
+      "scenario": "fair-c100",
+      "tenant": "B",
+      "peak_estimated_active_messages": 21,
+      "peak_handler_active_share": 1,
+      "duration_at_or_above_30_ms": 0,
+      "duration_meeting_handler_active_count_and_share_ms": 0
+    },
+    {
+      "scenario": "fair-c100",
+      "tenant": "C",
+      "peak_estimated_active_messages": 18,
+      "peak_handler_active_share": 1,
+      "duration_at_or_above_30_ms": 0,
+      "duration_meeting_handler_active_count_and_share_ms": 0
+    },
+    {
+      "scenario": "fair-c100",
+      "tenant": "_all",
+      "peak_estimated_active_messages": 100,
+      "peak_handler_active_share": 1,
+      "duration_at_or_above_30_ms": 222467,
+      "duration_meeting_handler_active_count_and_share_ms": 222467
+    }
+  ]
+}

@@ -5,9 +5,9 @@ LAMBDA_ZIP := $(LAMBDA_DIR)/consumer.zip
 
 build:
 	mkdir -p $(LAMBDA_DIR)
-	CGO_ENABLED=0 GOOS=linux GOARCH=arm64 go build -tags lambda.norpc -trimpath -ldflags="-s -w" -o $(LAMBDA_DIR)/bootstrap ./cmd/consumer
+	CGO_ENABLED=0 GOOS=linux GOARCH=arm64 go build -buildvcs=false -tags lambda.norpc -trimpath -ldflags="-s -w" -o $(LAMBDA_DIR)/bootstrap ./cmd/consumer
 	cd $(LAMBDA_DIR) && zip -q -FS consumer.zip bootstrap
-	go build -trimpath -o build/experiment ./cmd/experiment
+	go build -buildvcs=false -trimpath -o build/experiment ./cmd/experiment
 
 test:
 	go test ./...

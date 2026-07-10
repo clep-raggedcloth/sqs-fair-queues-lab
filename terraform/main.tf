@@ -3,32 +3,32 @@ locals {
     fair-c100 = {
       maximum_concurrency  = 100
       use_message_group_id = true
-      description          = "Fair Queue enabled by tenant MessageGroupId; Lambda maximum concurrency 100"
+      description          = "Fair Queue enabled by tenant MessageGroupId Lambda maximum concurrency 100"
     }
     baseline-c100 = {
       maximum_concurrency  = 100
       use_message_group_id = false
-      description          = "Standard Queue baseline without MessageGroupId; Lambda maximum concurrency 100"
+      description          = "Standard Queue baseline without MessageGroupId Lambda maximum concurrency 100"
     }
     fair-c29 = {
       maximum_concurrency  = 29
       use_message_group_id = true
-      description          = "Fair Queue enabled by tenant MessageGroupId; Lambda maximum concurrency 29"
+      description          = "Fair Queue enabled by tenant MessageGroupId Lambda maximum concurrency 29"
     }
     baseline-c29 = {
       maximum_concurrency  = 29
       use_message_group_id = false
-      description          = "Standard Queue baseline without MessageGroupId; Lambda maximum concurrency 29"
+      description          = "Standard Queue baseline without MessageGroupId Lambda maximum concurrency 29"
     }
     fair-c30 = {
       maximum_concurrency  = 30
       use_message_group_id = true
-      description          = "Fair Queue enabled by tenant MessageGroupId; Lambda maximum concurrency 30"
+      description          = "Fair Queue enabled by tenant MessageGroupId Lambda maximum concurrency 30"
     }
     baseline-c30 = {
       maximum_concurrency  = 30
       use_message_group_id = false
-      description          = "Standard Queue baseline without MessageGroupId; Lambda maximum concurrency 30"
+      description          = "Standard Queue baseline without MessageGroupId Lambda maximum concurrency 30"
     }
   }
 

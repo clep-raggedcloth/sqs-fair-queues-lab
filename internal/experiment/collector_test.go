@@ -33,7 +33,7 @@ func (f *splittingLogsAPI) GetQueryResults(_ context.Context, input *cloudwatchl
 	}
 	query := f.inputs[index]
 	start, end := aws.ToInt64(query.StartTime), aws.ToInt64(query.EndTime)
-	if end-start > 15 {
+	if end-start > 60 {
 		results := make([][]types.ResultField, cloudWatchLogsQueryLimit)
 		for i := range results {
 			if i < cloudWatchLogsQueryLimit-200 {
@@ -77,11 +77,11 @@ func TestCollectSplitsSaturatedQueriesAndDeduplicatesBoundaryEvents(t *testing.T
 	if err != nil {
 		t.Fatal(err)
 	}
-	if len(client.inputs) != 18 {
-		t.Fatalf("query count = %d, want 18", len(client.inputs))
+	if len(client.inputs) != 7 {
+		t.Fatalf("query count = %d, want 7", len(client.inputs))
 	}
-	if len(rows) != 13 {
-		t.Fatalf("event count = %d, want 13: %+v", len(rows), rows)
+	if len(rows) != 5 {
+		t.Fatalf("event count = %d, want 5: %+v", len(rows), rows)
 	}
 	messageIDs := make([]string, 0, len(rows))
 	for _, row := range rows {

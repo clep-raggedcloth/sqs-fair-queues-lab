@@ -25,7 +25,6 @@ type LogsAPI interface {
 
 const (
 	cloudWatchLogsQueryLimit = 10_000
-	maximumQueryWindow       = 30 * time.Second
 	minimumQueryWindow       = time.Second
 )
 
@@ -77,24 +76,10 @@ func (c *Collector) Collect(ctx context.Context, config Config, manifest Manifes
 	return result, nil
 }
 
-// queryWindow avoids the CloudWatch Logs Insights 10,000-result limit by using
-// short fixed windows. Saturated windows are split further as a safeguard.
-// Query boundaries can overlap at whole seconds, so callers must deduplicate
-// the decoded events after collecting.
+// queryWindow avoids the CloudWatch Logs Insights 10,000-result limit by
+// splitting only saturated windows. Query boundaries can overlap at whole
+// seconds, so callers must deduplicate the decoded events after collecting.
 func (c *Collector) queryWindow(ctx context.Context, logGroup, experimentID string, start, end time.Time) ([]string, error) {
-	if end.Sub(start) > maximumQueryWindow {
-		next := start.Add(maximumQueryWindow)
-		left, err := c.queryWindow(ctx, logGroup, experimentID, start, next)
-		if err != nil {
-			return nil, err
-		}
-		right, err := c.queryWindow(ctx, logGroup, experimentID, next, end)
-		if err != nil {
-			return nil, err
-		}
-		return append(left, right...), nil
-	}
-
 	result, err := c.query(ctx, logGroup, experimentID, start, end)
 	if err != nil {
 		return nil, err

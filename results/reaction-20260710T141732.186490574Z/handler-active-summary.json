@@ -7,45 +7,45 @@
       "tenant": "A",
       "peak_estimated_active_messages": 100,
       "peak_handler_active_share": 1,
-      "duration_at_or_above_30_ms": 221821,
-      "duration_meeting_handler_active_count_and_share_ms": 221821
+      "duration_at_or_above_30_ms": 682270,
+      "duration_meeting_handler_active_count_and_share_ms": 682270
     },
     {
       "scenario": "baseline-c100",
       "tenant": "B",
-      "peak_estimated_active_messages": 11,
+      "peak_estimated_active_messages": 62,
       "peak_handler_active_share": 1,
-      "duration_at_or_above_30_ms": 0,
-      "duration_meeting_handler_active_count_and_share_ms": 0
+      "duration_at_or_above_30_ms": 121339,
+      "duration_meeting_handler_active_count_and_share_ms": 121339
     },
     {
       "scenario": "baseline-c100",
       "tenant": "C",
-      "peak_estimated_active_messages": 11,
+      "peak_estimated_active_messages": 61,
       "peak_handler_active_share": 1,
-      "duration_at_or_above_30_ms": 0,
-      "duration_meeting_handler_active_count_and_share_ms": 0
+      "duration_at_or_above_30_ms": 123844,
+      "duration_meeting_handler_active_count_and_share_ms": 123844
     },
     {
       "scenario": "baseline-c100",
       "tenant": "_all",
       "peak_estimated_active_messages": 100,
       "peak_handler_active_share": 1,
-      "duration_at_or_above_30_ms": 221821,
-      "duration_meeting_handler_active_count_and_share_ms": 221821
+      "duration_at_or_above_30_ms": 810544,
+      "duration_meeting_handler_active_count_and_share_ms": 810544
     },
     {
       "scenario": "fair-c100",
       "tenant": "A",
       "peak_estimated_active_messages": 100,
       "peak_handler_active_share": 1,
-      "duration_at_or_above_30_ms": 222419,
-      "duration_meeting_handler_active_count_and_share_ms": 222419
+      "duration_at_or_above_30_ms": 813515,
+      "duration_meeting_handler_active_count_and_share_ms": 813515
     },
     {
       "scenario": "fair-c100",
       "tenant": "B",
-      "peak_estimated_active_messages": 21,
+      "peak_estimated_active_messages": 22,
       "peak_handler_active_share": 1,
       "duration_at_or_above_30_ms": 0,
       "duration_meeting_handler_active_count_and_share_ms": 0
@@ -53,7 +53,7 @@
     {
       "scenario": "fair-c100",
       "tenant": "C",
-      "peak_estimated_active_messages": 18,
+      "peak_estimated_active_messages": 19,
       "peak_handler_active_share": 1,
       "duration_at_or_above_30_ms": 0,
       "duration_meeting_handler_active_count_and_share_ms": 0
@@ -63,8 +63,8 @@
       "tenant": "_all",
       "peak_estimated_active_messages": 100,
       "peak_handler_active_share": 1,
-      "duration_at_or_above_30_ms": 222467,
-      "duration_meeting_handler_active_count_and_share_ms": 222467
+      "duration_at_or_above_30_ms": 813515,
+      "duration_meeting_handler_active_count_and_share_ms": 813515
     }
   ]
 }

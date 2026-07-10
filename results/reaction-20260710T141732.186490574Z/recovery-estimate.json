@@ -41,6 +41,9 @@
     "window_size_per_tenant": 10,
     "required_low_dwell_messages_per_tenant": 8,
     "disturbance_observed": true,
-    "recovery_observed": false
+    "recovery_observed": false,
+    "tenant_recovery_latency_ms": {
+      "B": 414257
+    }
   }
 ]

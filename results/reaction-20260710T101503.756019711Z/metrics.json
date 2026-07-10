@@ -1,0 +1,234 @@
+[
+  {
+    "scenario": "baseline-c100",
+    "namespace": "AWS/SQS",
+    "metric_name": "ApproximateNumberOfNoisyGroups",
+    "statistic": "Maximum",
+    "period_seconds": 60,
+    "dimensions": {
+      "QueueName": "sqs-fair-queue-lt-baseline-c100"
+    },
+    "status": "Complete",
+    "points": [
+      {
+        "timestamp": "2026-07-10T10:14:00Z",
+        "value": 0
+      },
+      {
+        "timestamp": "2026-07-10T10:15:00Z",
+        "value": 0
+      },
+      {
+        "timestamp": "2026-07-10T10:16:00Z",
+        "value": 0
+      },
+      {
+        "timestamp": "2026-07-10T10:17:00Z",
+        "value": 0
+      }
+    ]
+  },
+  {
+    "scenario": "baseline-c100",
+    "namespace": "AWS/SQS",
+    "metric_name": "ApproximateNumberOfMessagesNotVisible",
+    "statistic": "Maximum",
+    "period_seconds": 60,
+    "dimensions": {
+      "QueueName": "sqs-fair-queue-lt-baseline-c100"
+    },
+    "status": "Complete",
+    "points": [
+      {
+        "timestamp": "2026-07-10T10:14:00Z",
+        "value": 0
+      },
+      {
+        "timestamp": "2026-07-10T10:15:00Z",
+        "value": 0
+      },
+      {
+        "timestamp": "2026-07-10T10:16:00Z",
+        "value": 70
+      },
+      {
+        "timestamp": "2026-07-10T10:17:00Z",
+        "value": 90
+      }
+    ]
+  },
+  {
+    "scenario": "baseline-c100",
+    "namespace": "AWS/SQS",
+    "metric_name": "ApproximateNumberOfMessagesNotVisibleInQuietGroups",
+    "statistic": "Maximum",
+    "period_seconds": 60,
+    "dimensions": {
+      "QueueName": "sqs-fair-queue-lt-baseline-c100"
+    },
+    "status": "Complete",
+    "points": [
+      {
+        "timestamp": "2026-07-10T10:14:00Z",
+        "value": 0
+      },
+      {
+        "timestamp": "2026-07-10T10:15:00Z",
+        "value": 0
+      },
+      {
+        "timestamp": "2026-07-10T10:16:00Z",
+        "value": 70
+      },
+      {
+        "timestamp": "2026-07-10T10:17:00Z",
+        "value": 90
+      }
+    ]
+  },
+  {
+    "scenario": "baseline-c100",
+    "namespace": "AWS/Lambda",
+    "metric_name": "ConcurrentExecutions",
+    "statistic": "Maximum",
+    "period_seconds": 60,
+    "dimensions": {
+      "FunctionName": "sqs-fair-queue-lt-baseline-c100-consumer"
+    },
+    "status": "Complete",
+    "points": [
+      {
+        "timestamp": "2026-07-10T10:14:00Z",
+        "value": 22
+      },
+      {
+        "timestamp": "2026-07-10T10:15:00Z",
+        "value": 100
+      },
+      {
+        "timestamp": "2026-07-10T10:16:00Z",
+        "value": 100
+      },
+      {
+        "timestamp": "2026-07-10T10:17:00Z",
+        "value": 100
+      }
+    ]
+  },
+  {
+    "scenario": "fair-c100",
+    "namespace": "AWS/SQS",
+    "metric_name": "ApproximateNumberOfNoisyGroups",
+    "statistic": "Maximum",
+    "period_seconds": 60,
+    "dimensions": {
+      "QueueName": "sqs-fair-queue-lt-fair-c100"
+    },
+    "status": "Complete",
+    "points": [
+      {
+        "timestamp": "2026-07-10T10:14:00Z",
+        "value": 0
+      },
+      {
+        "timestamp": "2026-07-10T10:15:00Z",
+        "value": 0
+      },
+      {
+        "timestamp": "2026-07-10T10:16:00Z",
+        "value": 1
+      },
+      {
+        "timestamp": "2026-07-10T10:17:00Z",
+        "value": 1
+      }
+    ]
+  },
+  {
+    "scenario": "fair-c100",
+    "namespace": "AWS/SQS",
+    "metric_name": "ApproximateNumberOfMessagesNotVisible",
+    "statistic": "Maximum",
+    "period_seconds": 60,
+    "dimensions": {
+      "QueueName": "sqs-fair-queue-lt-fair-c100"
+    },
+    "status": "Complete",
+    "points": [
+      {
+        "timestamp": "2026-07-10T10:14:00Z",
+        "value": 0
+      },
+      {
+        "timestamp": "2026-07-10T10:15:00Z",
+        "value": 0
+      },
+      {
+        "timestamp": "2026-07-10T10:16:00Z",
+        "value": 95
+      },
+      {
+        "timestamp": "2026-07-10T10:17:00Z",
+        "value": 84
+      }
+    ]
+  },
+  {
+    "scenario": "fair-c100",
+    "namespace": "AWS/SQS",
+    "metric_name": "ApproximateNumberOfMessagesNotVisibleInQuietGroups",
+    "statistic": "Maximum",
+    "period_seconds": 60,
+    "dimensions": {
+      "QueueName": "sqs-fair-queue-lt-fair-c100"
+    },
+    "status": "Complete",
+    "points": [
+      {
+        "timestamp": "2026-07-10T10:14:00Z",
+        "value": 0
+      },
+      {
+        "timestamp": "2026-07-10T10:15:00Z",
+        "value": 0
+      },
+      {
+        "timestamp": "2026-07-10T10:16:00Z",
+        "value": 95
+      },
+      {
+        "timestamp": "2026-07-10T10:17:00Z",
+        "value": 84
+      }
+    ]
+  },
+  {
+    "scenario": "fair-c100",
+    "namespace": "AWS/Lambda",
+    "metric_name": "ConcurrentExecutions",
+    "statistic": "Maximum",
+    "period_seconds": 60,
+    "dimensions": {
+      "FunctionName": "sqs-fair-queue-lt-fair-c100-consumer"
+    },
+    "status": "Complete",
+    "points": [
+      {
+        "timestamp": "2026-07-10T10:14:00Z",
+        "value": 32
+      },
+      {
+        "timestamp": "2026-07-10T10:15:00Z",
+        "value": 100
+      },
+      {
+        "timestamp": "2026-07-10T10:16:00Z",
+        "value": 100
+      },
+      {
+        "timestamp": "2026-07-10T10:17:00Z",
+        "value": 100
+      }
+    ]
+  }
+]

@@ -1,5 +1,4 @@
 /build/
-/results/
 /.terraform/
 /terraform/.terraform/
 /terraform/*.tfstate

@@ -23,9 +23,19 @@ type LogsAPI interface {
 	GetQueryResults(context.Context, *cloudwatchlogs.GetQueryResultsInput, ...func(*cloudwatchlogs.Options)) (*cloudwatchlogs.GetQueryResultsOutput, error)
 }
 
-type Collector struct{ client LogsAPI }
+const (
+	cloudWatchLogsQueryLimit = 10_000
+	minimumQueryWindow       = time.Second
+)
 
-func NewCollector(client LogsAPI) *Collector { return &Collector{client: client} }
+type Collector struct {
+	client       LogsAPI
+	pollInterval time.Duration
+}
+
+func NewCollector(client LogsAPI) *Collector {
+	return &Collector{client: client, pollInterval: 2 * time.Second}
+}
 
 func (c *Collector) Collect(ctx context.Context, config Config, manifest Manifest) ([]consumer.EventLog, error) {
 	start, err := manifest.StartTime()
@@ -36,34 +46,68 @@ func (c *Collector) Collect(ctx context.Context, config Config, manifest Manifes
 	if err != nil {
 		return nil, err
 	}
-	var result []consumer.EventLog
+	entries := map[string]consumer.EventLog{}
 	for _, name := range manifest.Scenarios {
 		scenario, ok := config.Scenarios[name]
 		if !ok {
 			return nil, fmt.Errorf("scenario %q is missing from config", name)
 		}
-		rows, err := c.query(ctx, scenario.LogGroup, start.Add(-time.Minute), end.Add(time.Minute))
+		rows, err := c.queryWindow(ctx, scenario.LogGroup, manifest.ExperimentID, start.Add(-time.Minute), end.Add(time.Minute))
 		if err != nil {
 			return nil, fmt.Errorf("query %s: %w", name, err)
 		}
 		for _, row := range rows {
 			entry, ok := decodeEventLog(row)
 			if ok && entry.ExperimentID == manifest.ExperimentID {
-				result = append(result, entry)
+				entries[eventKey(entry)] = entry
 			}
 		}
+	}
+	result := make([]consumer.EventLog, 0, len(entries))
+	for _, entry := range entries {
+		result = append(result, entry)
 	}
 	sort.Slice(result, func(i, j int) bool { return result[i].HandlerStartMS < result[j].HandlerStartMS })
 	return result, nil
 }
 
-func (c *Collector) query(ctx context.Context, logGroup string, start, end time.Time) ([]string, error) {
+// queryWindow avoids the CloudWatch Logs Insights 10,000-result limit by
+// splitting only saturated windows. Query boundaries can overlap at whole
+// seconds, so callers must deduplicate the decoded events after collecting.
+func (c *Collector) queryWindow(ctx context.Context, logGroup, experimentID string, start, end time.Time) ([]string, error) {
+	rows, err := c.query(ctx, logGroup, experimentID, start, end)
+	if err != nil {
+		return nil, err
+	}
+	if len(rows) < cloudWatchLogsQueryLimit {
+		return rows, nil
+	}
+	if end.Sub(start) <= minimumQueryWindow {
+		return nil, fmt.Errorf("CloudWatch Logs Insights returned %d results for the minimum query window %s to %s", len(rows), start.Format(time.RFC3339), end.Format(time.RFC3339))
+	}
+
+	middle := start.Add(end.Sub(start) / 2).Truncate(time.Second)
+	if !middle.After(start) || !middle.Before(end) {
+		return nil, fmt.Errorf("cannot split saturated query window %s to %s", start.Format(time.RFC3339), end.Format(time.RFC3339))
+	}
+	left, err := c.queryWindow(ctx, logGroup, experimentID, start, middle)
+	if err != nil {
+		return nil, err
+	}
+	right, err := c.queryWindow(ctx, logGroup, experimentID, middle, end)
+	if err != nil {
+		return nil, err
+	}
+	return append(left, right...), nil
+}
+
+func (c *Collector) query(ctx context.Context, logGroup, experimentID string, start, end time.Time) ([]string, error) {
 	out, err := c.client.StartQuery(ctx, &cloudwatchlogs.StartQueryInput{
 		LogGroupName: aws.String(logGroup),
 		StartTime:    aws.Int64(start.Unix()),
 		EndTime:      aws.Int64(end.Unix()),
-		Limit:        aws.Int32(10000),
-		QueryString:  aws.String("fields @message | filter @message like /message_started/ | sort @timestamp asc"),
+		Limit:        aws.Int32(cloudWatchLogsQueryLimit),
+		QueryString:  aws.String(logQuery(experimentID)),
 	})
 	if err != nil {
 		return nil, err
@@ -72,7 +116,7 @@ func (c *Collector) query(ctx context.Context, logGroup string, start, end time.
 		select {
 		case <-ctx.Done():
 			return nil, ctx.Err()
-		case <-time.After(2 * time.Second):
+		default:
 		}
 		query, err := c.client.GetQueryResults(ctx, &cloudwatchlogs.GetQueryResultsInput{QueryId: out.QueryId})
 		if err != nil {
@@ -92,7 +136,41 @@ func (c *Collector) query(ctx context.Context, logGroup string, start, end time.
 		case types.QueryStatusFailed, types.QueryStatusCancelled, types.QueryStatusTimeout:
 			return nil, fmt.Errorf("CloudWatch Logs Insights query ended with status %s", query.Status)
 		}
+		pollInterval := c.pollInterval
+		if pollInterval <= 0 {
+			pollInterval = 2 * time.Second
+		}
+		timer := time.NewTimer(pollInterval)
+		select {
+		case <-ctx.Done():
+			timer.Stop()
+			return nil, ctx.Err()
+		case <-timer.C:
+		}
 	}
+}
+
+func logQuery(experimentID string) string {
+	return fmt.Sprintf("fields @message | filter @message like /message_started/ | filter @message like /%s/ | sort @timestamp asc", logsInsightsRegexLiteral(experimentID))
+}
+
+func logsInsightsRegexLiteral(value string) string {
+	replacer := strings.NewReplacer("\\", "\\\\", "/", "\\/")
+	return replacer.Replace(value)
+}
+
+func eventKey(entry consumer.EventLog) string {
+	if entry.MessageID != "" {
+		return entry.Scenario + ":" + entry.MessageID
+	}
+	return strings.Join([]string{
+		entry.ExperimentID,
+		entry.Scenario,
+		entry.Tenant,
+		entry.Phase,
+		strconv.Itoa(entry.Sequence),
+		strconv.FormatInt(entry.HandlerStartMS, 10),
+	}, ":")
 }
 
 func decodeEventLog(line string) (consumer.EventLog, bool) {

@@ -1,13 +1,102 @@
 package experiment
 
 import (
+	"context"
 	"encoding/json"
+	"fmt"
 	"os"
+	"sort"
+	"strconv"
+	"strings"
 	"testing"
 	"time"
 
 	"github.com/aoiito/sqs-fair-queue-verification/internal/consumer"
+	"github.com/aws/aws-sdk-go-v2/aws"
+	"github.com/aws/aws-sdk-go-v2/service/cloudwatchlogs"
+	"github.com/aws/aws-sdk-go-v2/service/cloudwatchlogs/types"
 )
+
+type splittingLogsAPI struct {
+	inputs []*cloudwatchlogs.StartQueryInput
+}
+
+func (f *splittingLogsAPI) StartQuery(_ context.Context, input *cloudwatchlogs.StartQueryInput, _ ...func(*cloudwatchlogs.Options)) (*cloudwatchlogs.StartQueryOutput, error) {
+	f.inputs = append(f.inputs, input)
+	return &cloudwatchlogs.StartQueryOutput{QueryId: aws.String(strconv.Itoa(len(f.inputs) - 1))}, nil
+}
+
+func (f *splittingLogsAPI) GetQueryResults(_ context.Context, input *cloudwatchlogs.GetQueryResultsInput, _ ...func(*cloudwatchlogs.Options)) (*cloudwatchlogs.GetQueryResultsOutput, error) {
+	index, err := strconv.Atoi(aws.ToString(input.QueryId))
+	if err != nil {
+		return nil, err
+	}
+	query := f.inputs[index]
+	start, end := aws.ToInt64(query.StartTime), aws.ToInt64(query.EndTime)
+	if end-start > 60 {
+		results := make([][]types.ResultField, cloudWatchLogsQueryLimit)
+		for i := range results {
+			results[i] = []types.ResultField{{Field: aws.String("@message"), Value: aws.String("not an experiment event")}}
+		}
+		return &cloudwatchlogs.GetQueryResultsOutput{
+			Status:  types.QueryStatusComplete,
+			Results: results,
+		}, nil
+	}
+	entries := []consumer.EventLog{
+		{EventType: "message_started", ExperimentID: "exp", Scenario: "fair-c100", Tenant: "B", Phase: "probe", MessageID: fmt.Sprintf("message-%d", start), HandlerStartMS: start * 1000},
+		{EventType: "message_started", ExperimentID: "exp", Scenario: "fair-c100", Tenant: "B", Phase: "probe", MessageID: "boundary", HandlerStartMS: 90_000},
+	}
+	results := make([][]types.ResultField, 0, len(entries))
+	for _, entry := range entries {
+		encoded, err := json.Marshal(entry)
+		if err != nil {
+			return nil, err
+		}
+		results = append(results, []types.ResultField{{Field: aws.String("@message"), Value: aws.String(string(encoded))}})
+	}
+	return &cloudwatchlogs.GetQueryResultsOutput{Status: types.QueryStatusComplete, Results: results}, nil
+}
+
+func TestCollectSplitsSaturatedQueriesAndDeduplicatesBoundaryEvents(t *testing.T) {
+	client := &splittingLogsAPI{}
+	collector := &Collector{client: client}
+	start := time.Unix(60, 0).UTC()
+	rows, err := collector.Collect(context.Background(), Config{Scenarios: map[string]Scenario{
+		"fair-c100": {LogGroup: "/aws/lambda/fair"},
+	}}, Manifest{
+		ExperimentID: "exp",
+		Scenarios:    []string{"fair-c100"},
+		StartedAt:    start.Format(time.RFC3339),
+		CompletedAt:  start.Add(time.Minute).Format(time.RFC3339),
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(client.inputs) != 7 {
+		t.Fatalf("query count = %d, want 7", len(client.inputs))
+	}
+	if len(rows) != 5 {
+		t.Fatalf("event count = %d, want 5: %+v", len(rows), rows)
+	}
+	messageIDs := make([]string, 0, len(rows))
+	for _, row := range rows {
+		messageIDs = append(messageIDs, row.MessageID)
+	}
+	sort.Strings(messageIDs)
+	if strings.Count(strings.Join(messageIDs, ","), "boundary") != 1 {
+		t.Fatalf("boundary event was not deduplicated: %v", messageIDs)
+	}
+	for _, input := range client.inputs {
+		if aws.ToInt32(input.Limit) != cloudWatchLogsQueryLimit {
+			t.Fatalf("query limit = %d, want %d", aws.ToInt32(input.Limit), cloudWatchLogsQueryLimit)
+		}
+		query := aws.ToString(input.QueryString)
+		if !strings.Contains(query, "message_started") || !strings.Contains(query, "exp") {
+			t.Fatalf("query does not filter the experiment log: %q", query)
+		}
+	}
+}
 
 func TestDecodeEventLogWithLambdaPrefix(t *testing.T) {
 	line := "2026-01-01T00:00:00Z\trequest-id\t{\"event_type\":\"message_started\",\"experiment_id\":\"exp\",\"scenario\":\"fair-c100\"}"

@@ -36,7 +36,11 @@ func (f *splittingLogsAPI) GetQueryResults(_ context.Context, input *cloudwatchl
 	if end-start > 60 {
 		results := make([][]types.ResultField, cloudWatchLogsQueryLimit)
 		for i := range results {
-			results[i] = []types.ResultField{{Field: aws.String("@message"), Value: aws.String("not an experiment event")}}
+			if i < cloudWatchLogsQueryLimit-200 {
+				results[i] = []types.ResultField{{Field: aws.String("@message"), Value: aws.String("not an experiment event")}}
+			} else {
+				results[i] = []types.ResultField{{Field: aws.String("@timestamp"), Value: aws.String("0")}}
+			}
 		}
 		return &cloudwatchlogs.GetQueryResultsOutput{
 			Status:  types.QueryStatusComplete,

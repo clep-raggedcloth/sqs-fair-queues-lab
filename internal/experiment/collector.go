@@ -33,6 +33,11 @@ type Collector struct {
 	pollInterval time.Duration
 }
 
+type logQueryResult struct {
+	messages    []string
+	resultCount int
+}
+
 func NewCollector(client LogsAPI) *Collector {
 	return &Collector{client: client, pollInterval: 2 * time.Second}
 }
@@ -75,15 +80,15 @@ func (c *Collector) Collect(ctx context.Context, config Config, manifest Manifes
 // splitting only saturated windows. Query boundaries can overlap at whole
 // seconds, so callers must deduplicate the decoded events after collecting.
 func (c *Collector) queryWindow(ctx context.Context, logGroup, experimentID string, start, end time.Time) ([]string, error) {
-	rows, err := c.query(ctx, logGroup, experimentID, start, end)
+	result, err := c.query(ctx, logGroup, experimentID, start, end)
 	if err != nil {
 		return nil, err
 	}
-	if len(rows) < cloudWatchLogsQueryLimit {
-		return rows, nil
+	if result.resultCount < cloudWatchLogsQueryLimit {
+		return result.messages, nil
 	}
 	if end.Sub(start) <= minimumQueryWindow {
-		return nil, fmt.Errorf("CloudWatch Logs Insights returned %d results for the minimum query window %s to %s", len(rows), start.Format(time.RFC3339), end.Format(time.RFC3339))
+		return nil, fmt.Errorf("CloudWatch Logs Insights returned %d results for the minimum query window %s to %s", result.resultCount, start.Format(time.RFC3339), end.Format(time.RFC3339))
 	}
 
 	middle := start.Add(end.Sub(start) / 2).Truncate(time.Second)
@@ -101,7 +106,7 @@ func (c *Collector) queryWindow(ctx context.Context, logGroup, experimentID stri
 	return append(left, right...), nil
 }
 
-func (c *Collector) query(ctx context.Context, logGroup, experimentID string, start, end time.Time) ([]string, error) {
+func (c *Collector) query(ctx context.Context, logGroup, experimentID string, start, end time.Time) (logQueryResult, error) {
 	out, err := c.client.StartQuery(ctx, &cloudwatchlogs.StartQueryInput{
 		LogGroupName: aws.String(logGroup),
 		StartTime:    aws.Int64(start.Unix()),
@@ -110,17 +115,17 @@ func (c *Collector) query(ctx context.Context, logGroup, experimentID string, st
 		QueryString:  aws.String(logQuery(experimentID)),
 	})
 	if err != nil {
-		return nil, err
+		return logQueryResult{}, err
 	}
 	for {
 		select {
 		case <-ctx.Done():
-			return nil, ctx.Err()
+			return logQueryResult{}, ctx.Err()
 		default:
 		}
 		query, err := c.client.GetQueryResults(ctx, &cloudwatchlogs.GetQueryResultsInput{QueryId: out.QueryId})
 		if err != nil {
-			return nil, err
+			return logQueryResult{}, err
 		}
 		switch query.Status {
 		case types.QueryStatusComplete:
@@ -132,9 +137,9 @@ func (c *Collector) query(ctx context.Context, logGroup, experimentID string, st
 					}
 				}
 			}
-			return messages, nil
+			return logQueryResult{messages: messages, resultCount: len(query.Results)}, nil
 		case types.QueryStatusFailed, types.QueryStatusCancelled, types.QueryStatusTimeout:
-			return nil, fmt.Errorf("CloudWatch Logs Insights query ended with status %s", query.Status)
+			return logQueryResult{}, fmt.Errorf("CloudWatch Logs Insights query ended with status %s", query.Status)
 		}
 		pollInterval := c.pollInterval
 		if pollInterval <= 0 {
@@ -144,7 +149,7 @@ func (c *Collector) query(ctx context.Context, logGroup, experimentID string, st
 		select {
 		case <-ctx.Done():
 			timer.Stop()
-			return nil, ctx.Err()
+			return logQueryResult{}, ctx.Err()
 		case <-timer.C:
 		}
 	}

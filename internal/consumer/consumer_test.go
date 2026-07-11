@@ -11,7 +11,7 @@ import (
 )
 
 func TestHandleLogsDwellTime(t *testing.T) {
-	work := message.New("exp-1", "fair-c29", "A", "burst", 7, 250, time.Unix(0, 0))
+	work := message.New("exp-1", "fair-c20", "A", "burst", 7, 250, time.Unix(0, 0))
 	body, err := json.Marshal(work)
 	if err != nil {
 		t.Fatal(err)
@@ -42,7 +42,7 @@ func TestHandleLogsDwellTime(t *testing.T) {
 	if entry.DwellMS != 500 {
 		t.Fatalf("DwellMS = %d, want 500", entry.DwellMS)
 	}
-	if entry.Scenario != "fair-c29" || entry.Tenant != "A" {
+	if entry.Scenario != "fair-c20" || entry.Tenant != "A" {
 		t.Fatalf("unexpected entry: %+v", entry)
 	}
 }

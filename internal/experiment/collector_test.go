@@ -125,9 +125,9 @@ func TestWriteObservationSummaryUsesSendTimeAndKeepsLateStarts(t *testing.T) {
 		t.Fatal(err)
 	}
 	path, err := WriteObservationSummary(dir, manifest, []consumer.EventLog{
-		{Scenario: "fair-c29", Tenant: "B", SQSSentMS: start.Add(4 * time.Second).UnixMilli(), HandlerStartMS: start.Add(5 * time.Second).UnixMilli(), DwellMS: 100},
-		{Scenario: "fair-c29", Tenant: "B", SQSSentMS: start.Add(8 * time.Second).UnixMilli(), HandlerStartMS: start.Add(20 * time.Second).UnixMilli(), DwellMS: 5000},
-		{Scenario: "fair-c29", Tenant: "B", SQSSentMS: start.Add(12 * time.Second).UnixMilli(), HandlerStartMS: start.Add(20 * time.Second).UnixMilli(), DwellMS: 9000},
+		{Scenario: "fair-c20", Tenant: "B", SQSSentMS: start.Add(4 * time.Second).UnixMilli(), HandlerStartMS: start.Add(5 * time.Second).UnixMilli(), DwellMS: 100},
+		{Scenario: "fair-c20", Tenant: "B", SQSSentMS: start.Add(8 * time.Second).UnixMilli(), HandlerStartMS: start.Add(20 * time.Second).UnixMilli(), DwellMS: 5000},
+		{Scenario: "fair-c20", Tenant: "B", SQSSentMS: start.Add(12 * time.Second).UnixMilli(), HandlerStartMS: start.Add(20 * time.Second).UnixMilli(), DwellMS: 9000},
 	})
 	if err != nil {
 		t.Fatal(err)
@@ -149,7 +149,7 @@ func TestWriteRecoveryEstimatesUsesBaselineAndFirstASentTimestamp(t *testing.T) 
 	dir := t.TempDir()
 	start := time.Unix(1000, 0).UTC()
 	manifest := Manifest{
-		ExperimentID: "exp", Scenarios: []string{"fair-c29"}, WorkMS: 2000,
+		ExperimentID: "exp", Scenarios: []string{"fair-c20"}, WorkMS: 2000,
 		StartedAt:           start.Add(-20 * time.Second).Format(time.RFC3339Nano),
 		ObservationWindowMS: 20_000,
 	}
@@ -157,24 +157,24 @@ func TestWriteRecoveryEstimatesUsesBaselineAndFirstASentTimestamp(t *testing.T) 
 		t.Fatal(err)
 	}
 	rows := []consumer.EventLog{{
-		Scenario: "fair-c29", Tenant: "A", Phase: "burst",
+		Scenario: "fair-c20", Tenant: "A", Phase: "burst",
 		SQSSentMS: start.UnixMilli(), HandlerStartMS: start.Add(time.Second).UnixMilli(),
 	}}
 	for _, tenant := range []string{"B", "C"} {
 		for i := 0; i < 20; i++ {
 			rows = append(rows, consumer.EventLog{
-				Scenario: "fair-c29", Tenant: tenant, Phase: "baseline", DwellMS: 100,
+				Scenario: "fair-c20", Tenant: tenant, Phase: "baseline", DwellMS: 100,
 				SQSSentMS:      start.Add(-time.Duration(20-i) * time.Second).UnixMilli(),
 				HandlerStartMS: start.Add(-time.Duration(20-i)*time.Second).UnixMilli() + 100,
 			})
 		}
 		rows = append(rows, consumer.EventLog{
-			Scenario: "fair-c29", Tenant: tenant, Phase: "probe", DwellMS: 1000,
+			Scenario: "fair-c20", Tenant: tenant, Phase: "probe", DwellMS: 1000,
 			SQSSentMS: start.Add(time.Second).UnixMilli(), HandlerStartMS: start.Add(2 * time.Second).UnixMilli(),
 		})
 		for i := 0; i < 10; i++ {
 			rows = append(rows, consumer.EventLog{
-				Scenario: "fair-c29", Tenant: tenant, Phase: "probe", DwellMS: 100,
+				Scenario: "fair-c20", Tenant: tenant, Phase: "probe", DwellMS: 100,
 				SQSSentMS:      start.Add(time.Duration(2+i) * time.Second).UnixMilli(),
 				HandlerStartMS: start.Add(time.Duration(2+i)*time.Second + 100*time.Millisecond).UnixMilli(),
 			})

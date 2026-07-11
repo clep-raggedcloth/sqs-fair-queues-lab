@@ -34,7 +34,7 @@ variable "lambda_timeout_seconds" {
 }
 
 variable "reserve_concurrency" {
-  description = "Reserve maximum concurrency plus five for each function. Requires at least 448 account concurrency with the default scenarios."
+  description = "Reserve maximum concurrency plus five for each function. Size the account quota using reserved_concurrency_total plus Lambda's required unreserved concurrency pool."
   type        = bool
   default     = true
 }

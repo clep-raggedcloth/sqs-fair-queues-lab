@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"errors"
 	"flag"
 	"fmt"
 	"os"
@@ -27,6 +28,7 @@ type runOptions struct {
 	probeInterval       time.Duration
 	queueSampleInterval time.Duration
 	baselineDuration    time.Duration
+	baselineInterval    time.Duration
 	warmup              int
 	sendWorkers         int
 	mode                string
@@ -41,8 +43,6 @@ func main() {
 	switch os.Args[1] {
 	case "run-reaction":
 		err = runCommand(os.Args[2:], 100, "reaction")
-	case "run-boundary":
-		err = runBoundaryCommand(os.Args[2:])
 	case "run-low":
 		err = runLowCommand(os.Args[2:])
 	case "collect":
@@ -53,40 +53,68 @@ func main() {
 		usage()
 		os.Exit(2)
 	}
-	if err != nil {
-		fmt.Fprintln(os.Stderr, "error:", err)
-		os.Exit(1)
+	if commandSucceeded(err) {
+		return
 	}
+	fmt.Fprintln(os.Stderr, "error:", err)
+	os.Exit(1)
+}
+
+func commandSucceeded(err error) bool {
+	return err == nil || errors.Is(err, flag.ErrHelp)
 }
 
 func usage() {
 	fmt.Fprintln(os.Stderr, `Usage:
   experiment run-reaction [flags]
-  experiment run-boundary --concurrency 29|30 [flags]
   experiment run-low --mode short|long [flags]
   experiment collect --manifest results/<id>/manifest.json [flags]
   experiment purge [flags]`)
 }
 
-func baseRunFlags(name string, args []string) (*flag.FlagSet, *runOptions) {
+type runDefaults struct {
+	probeMessages    int
+	probeInterval    time.Duration
+	probeDescription string
+	baselineDuration time.Duration
+	baselineInterval time.Duration
+}
+
+func reactionRunDefaults() runDefaults {
+	return runDefaults{
+		probeMessages: 300, probeInterval: 100 * time.Millisecond,
+		probeDescription: "Quiet-tenant probe messages per scenario",
+		baselineDuration: 20 * time.Second, baselineInterval: 100 * time.Millisecond,
+	}
+}
+
+func lowRunDefaults() runDefaults {
+	return runDefaults{
+		probeMessages: 0, probeInterval: 500 * time.Millisecond,
+		probeDescription: "Quiet-tenant probe messages per scenario; 0 selects 30 for short or 240 for long",
+		baselineDuration: 100 * time.Second, baselineInterval: 500 * time.Millisecond,
+	}
+}
+
+func baseRunFlags(name string, defaults runDefaults) (*flag.FlagSet, *runOptions) {
 	fs := flag.NewFlagSet(name, flag.ContinueOnError)
 	opts := &runOptions{}
 	fs.StringVar(&opts.configPath, "config", "build/experiment-config.json", "Terraform-generated experiment config")
 	fs.StringVar(&opts.resultsDir, "results-dir", "results", "Local results directory")
 	fs.IntVar(&opts.workMS, "work-ms", 2000, "Consumer processing time per message")
 	fs.IntVar(&opts.burstMessages, "burst", 5000, "Tenant A burst messages per scenario")
-	fs.IntVar(&opts.probeMessages, "probes", 300, "Quiet-tenant probe messages per scenario")
-	fs.DurationVar(&opts.probeInterval, "probe-interval", 100*time.Millisecond, "Interval between B/C probes")
+	fs.IntVar(&opts.probeMessages, "probes", defaults.probeMessages, defaults.probeDescription)
+	fs.DurationVar(&opts.probeInterval, "probe-interval", defaults.probeInterval, "Interval between B/C probes")
 	fs.DurationVar(&opts.queueSampleInterval, "queue-sample-interval", time.Second, "Interval between direct SQS queue-depth observations")
-	fs.DurationVar(&opts.baselineDuration, "baseline-duration", 20*time.Second, "Duration of the pre-burst B/C baseline phase")
+	fs.DurationVar(&opts.baselineDuration, "baseline-duration", defaults.baselineDuration, "Duration of the pre-burst B/C baseline phase")
+	fs.DurationVar(&opts.baselineInterval, "baseline-interval", defaults.baselineInterval, "Interval between pre-burst B/C baseline messages")
 	fs.IntVar(&opts.warmup, "warmup", 200, "Balanced warm-up messages per scenario")
 	fs.IntVar(&opts.sendWorkers, "send-workers", 16, "Concurrent SendMessageBatch workers")
-	_ = args
 	return fs, opts
 }
 
 func runCommand(args []string, concurrency int, kind string) error {
-	fs, opts := baseRunFlags("run-reaction", args)
+	fs, opts := baseRunFlags("run-reaction", reactionRunDefaults())
 	if err := fs.Parse(args); err != nil {
 		return err
 	}
@@ -94,58 +122,45 @@ func runCommand(args []string, concurrency int, kind string) error {
 }
 
 func runLowCommand(args []string) error {
-	fs, opts := baseRunFlags("run-low", args)
-	fs.StringVar(&opts.mode, "mode", "short", "short observes early behavior below 30; long observes possible processing-time detection")
-	if err := fs.Parse(args); err != nil {
+	opts, err := parseLowOptions(args)
+	if err != nil {
 		return err
+	}
+	return executeRun(context.Background(), opts, 20, "low-concurrency")
+}
+
+func parseLowOptions(args []string) (runOptions, error) {
+	fs, opts := lowRunFlags()
+	if err := fs.Parse(args); err != nil {
+		return runOptions{}, err
 	}
 	switch opts.mode {
 	case "short":
-		if !flagWasSet(fs, "probes") {
-			opts.probeMessages = 150
+		if opts.probeMessages == 0 {
+			opts.probeMessages = 30
 		}
 	case "long":
-		if !flagWasSet(fs, "probes") {
-			opts.probeMessages = 1200
+		if opts.probeMessages == 0 {
+			opts.probeMessages = 240
 		}
 	default:
-		return fmt.Errorf("mode must be short or long")
+		return runOptions{}, fmt.Errorf("mode must be short or long")
 	}
-	return executeRun(context.Background(), *opts, 29, "low-concurrency")
+	return *opts, nil
 }
 
-func runBoundaryCommand(args []string) error {
-	fs, opts := baseRunFlags("run-boundary", args)
-	concurrency := fs.Int("concurrency", 30, "Lambda maximum concurrency; must be 29 or 30")
-	if err := fs.Parse(args); err != nil {
-		return err
-	}
-	if *concurrency != 29 && *concurrency != 30 {
-		return fmt.Errorf("concurrency must be 29 or 30")
-	}
-	if !flagWasSet(fs, "probes") {
-		opts.probeMessages = 150
-	}
-	opts.mode = "boundary"
-	return executeRun(context.Background(), *opts, *concurrency, "count-boundary")
-}
-
-func flagWasSet(fs *flag.FlagSet, name string) bool {
-	found := false
-	fs.Visit(func(f *flag.Flag) {
-		if f.Name == name {
-			found = true
-		}
-	})
-	return found
+func lowRunFlags() (*flag.FlagSet, *runOptions) {
+	fs, opts := baseRunFlags("run-low", lowRunDefaults())
+	fs.StringVar(&opts.mode, "mode", "short", "short observes early behavior at concurrency 20; long observes possible processing-time detection")
+	return fs, opts
 }
 
 func executeRun(parent context.Context, opts runOptions, concurrency int, kind string) error {
 	if opts.burstMessages < 1 || opts.probeMessages < 1 {
 		return fmt.Errorf("burst and probes must be at least 1")
 	}
-	if opts.probeInterval <= 0 || opts.queueSampleInterval <= 0 || opts.baselineDuration < 0 {
-		return fmt.Errorf("probe-interval and queue-sample-interval must be positive and baseline-duration must not be negative")
+	if opts.probeInterval <= 0 || opts.queueSampleInterval <= 0 || opts.baselineInterval <= 0 || opts.baselineDuration < 0 {
+		return fmt.Errorf("probe-interval, baseline-interval, and queue-sample-interval must be positive and baseline-duration must not be negative")
 	}
 	config, err := experiment.LoadConfig(opts.configPath)
 	if err != nil {
@@ -274,6 +289,8 @@ func executeRun(parent context.Context, opts runOptions, concurrency int, kind s
 		ObservationWindowMS:   opts.probeMessages * int(opts.probeInterval.Milliseconds()),
 		WarmupMessages:        opts.warmup,
 		BaselineDurationMS:    int(opts.baselineDuration.Milliseconds()),
+		BaselineIntervalMS:    int(opts.baselineInterval.Milliseconds()),
+		BaselineMessages:      baselineMessageCount(opts),
 		MaximumConcurrency:    concurrency,
 		ScenarioTimings:       timings,
 	}
@@ -313,9 +330,9 @@ func sendBaseline(ctx context.Context, sender *experiment.Sender, scenarios map[
 	if opts.baselineDuration == 0 {
 		return nil
 	}
-	messageCount := max(1, int(opts.baselineDuration/opts.probeInterval))
+	messageCount := baselineMessageCount(opts)
 	return forEachScenario(scenarios, func(name string, scenario experiment.Scenario) error {
-		ticker := time.NewTicker(opts.probeInterval)
+		ticker := time.NewTicker(opts.baselineInterval)
 		defer ticker.Stop()
 		for i := 0; i < messageCount; i++ {
 			if i > 0 {
@@ -336,6 +353,13 @@ func sendBaseline(ctx context.Context, sender *experiment.Sender, scenarios map[
 		}
 		return nil
 	})
+}
+
+func baselineMessageCount(opts runOptions) int {
+	if opts.baselineDuration == 0 {
+		return 0
+	}
+	return max(1, int(opts.baselineDuration/opts.baselineInterval))
 }
 
 func sendMeasurement(ctx context.Context, sender *experiment.Sender, scenarios map[string]experiment.Scenario, experimentID string, opts runOptions) (map[string]experiment.ScenarioTiming, error) {

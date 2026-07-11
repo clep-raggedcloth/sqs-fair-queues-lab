@@ -26,6 +26,8 @@ type MetricsAPI interface {
 type MetricPoint struct {
 	Timestamp string  `json:"timestamp"`
 	Value     float64 `json:"value"`
+	Phase     string  `json:"phase"`
+	ElapsedMS int64   `json:"elapsed_ms"`
 }
 
 type MetricSeries struct {
@@ -54,6 +56,16 @@ func CollectMetrics(ctx context.Context, client MetricsAPI, config Config, manif
 	end, err := manifest.CompletionTime()
 	if err != nil {
 		return nil, err
+	}
+	burstStarts := make(map[string]time.Time, len(manifest.Scenarios))
+	observationEnds := make(map[string]time.Time, len(manifest.Scenarios))
+	for _, scenario := range manifest.Scenarios {
+		burstStart, err := manifest.BurstStartTime(scenario)
+		if err != nil {
+			return nil, fmt.Errorf("scenario %s burst start: %w", scenario, err)
+		}
+		burstStarts[scenario] = burstStart
+		observationEnds[scenario] = burstStart.Add(time.Duration(manifest.ObservationWindowMS) * time.Millisecond)
 	}
 
 	definitions := make([]metricDefinition, 0, len(manifest.Scenarios)*4)
@@ -129,8 +141,12 @@ func CollectMetrics(ctx context.Context, client MetricsAPI, config Config, manif
 			}
 			series.Status = string(result.StatusCode)
 			for index := range min(len(result.Timestamps), len(result.Values)) {
+				timestamp := result.Timestamps[index].UTC()
+				burstStart := burstStarts[series.Scenario]
 				series.Points = append(series.Points, MetricPoint{
-					Timestamp: result.Timestamps[index].UTC().Format(time.RFC3339), Value: result.Values[index],
+					Timestamp: timestamp.Format(time.RFC3339), Value: result.Values[index],
+					Phase:     metricPointPhase(timestamp, burstStart, observationEnds[series.Scenario]),
+					ElapsedMS: timestamp.UnixMilli() - burstStart.UnixMilli(),
 				})
 			}
 		}
@@ -147,6 +163,20 @@ func CollectMetrics(ctx context.Context, client MetricsAPI, config Config, manif
 		result = append(result, *series)
 	}
 	return result, nil
+}
+
+func metricPointPhase(timestamp, burstStart, observationEnd time.Time) string {
+	periodEnd := timestamp.Add(time.Duration(metricPeriodSeconds) * time.Second)
+	switch {
+	case !periodEnd.After(burstStart):
+		return "baseline"
+	case !timestamp.Before(observationEnd):
+		return "drain"
+	case !timestamp.Before(burstStart) && !periodEnd.After(observationEnd):
+		return "measurement"
+	default:
+		return "boundary_overlap"
+	}
 }
 
 func WriteMetrics(resultsDir string, manifest Manifest, series []MetricSeries) (string, error) {

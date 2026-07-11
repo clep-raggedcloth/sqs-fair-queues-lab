@@ -36,17 +36,26 @@ func LoadConfig(path string) (Config, error) {
 }
 
 func (c Config) Pair(maximumConcurrency int) (map[string]Scenario, error) {
-	names := []string{
-		fmt.Sprintf("fair-c%d", maximumConcurrency),
-		fmt.Sprintf("baseline-c%d", maximumConcurrency),
+	requirements := []struct {
+		name              string
+		useMessageGroupID bool
+	}{
+		{name: fmt.Sprintf("fair-c%d", maximumConcurrency), useMessageGroupID: true},
+		{name: fmt.Sprintf("baseline-c%d", maximumConcurrency), useMessageGroupID: false},
 	}
-	result := make(map[string]Scenario, len(names))
-	for _, name := range names {
-		scenario, ok := c.Scenarios[name]
+	result := make(map[string]Scenario, len(requirements))
+	for _, requirement := range requirements {
+		scenario, ok := c.Scenarios[requirement.name]
 		if !ok {
-			return nil, fmt.Errorf("scenario %q is missing from config", name)
+			return nil, fmt.Errorf("scenario %q is missing from config", requirement.name)
 		}
-		result[name] = scenario
+		if scenario.MaximumConcurrency != maximumConcurrency {
+			return nil, fmt.Errorf("scenario %q has maximum_concurrency %d, want %d", requirement.name, scenario.MaximumConcurrency, maximumConcurrency)
+		}
+		if scenario.UseMessageGroupID != requirement.useMessageGroupID {
+			return nil, fmt.Errorf("scenario %q has use_message_group_id %t, want %t", requirement.name, scenario.UseMessageGroupID, requirement.useMessageGroupID)
+		}
+		result[requirement.name] = scenario
 	}
 	return result, nil
 }

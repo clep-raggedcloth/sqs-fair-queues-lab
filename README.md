@@ -2,8 +2,8 @@
 
 Amazon SQS Standard QueueでFair Queuesを利用し、次の2点をAWS上で検証するためのコードです。
 
-1. Lambdaの最大同時実行数を29に制限したとき、Fair Queuesの2つの検出経路がどう動くか
-2. テナントAのバースト発生後、静かなテナントB・Cのdwell timeが平常値へ戻るまでの時間
+1. テナントAのバースト発生後、静かなテナントB・Cのdwell timeが平常値へ戻るまでの時間
+2. Lambdaの最大同時実行数を20に制限したとき、Fair Queuesによるquiet tenantの遅延改善を観測できるか
 
 ConsumerはGoのLambda、AWSリソースはTerraform、負荷生成と結果回収はGo CLIで実装しています。開発環境にはDev Containerを使用します。
 
@@ -30,16 +30,14 @@ AWSは分散システムであり、しきい値付近の判定は近似です�
 
 ## シナリオ名
 
-`c100`、`c29`、`c30`は、SQSイベントソースマッピングに設定するLambdaのMaximum Concurrencyを表します。
+`c100`、`c20`は、SQSイベントソースマッピングに設定するLambdaのMaximum Concurrencyを表します。
 
 | シナリオ | MessageGroupId | Maximum Concurrency | 用途 |
 |---|---|---:|---|
 | `fair-c100` | テナントID | 100 | 30件条件へ到達できるFair Queues |
 | `baseline-c100` | なし | 100 | `fair-c100`の比較対象 |
-| `fair-c29` | テナントID | 29 | 30件境界の直前を観測するFair Queues |
-| `baseline-c29` | なし | 29 | `fair-c29`の比較対象 |
-| `fair-c30` | テナントID | 30 | Lambda上限30での挙動を探索するFair Queues。A自身の30件到達は前提にしない |
-| `baseline-c30` | なし | 30 | 探索的な`fair-c30`の比較対象 |
+| `fair-c20` | テナントID | 20 | 少数コンシューマー構成でのFair Queues |
+| `baseline-c20` | なし | 20 | `fair-c20`の比較対象 |
 
 キュー自体はすべてStandard Queueです。`fair-*`と`baseline-*`の違いは、実験CLIが送信時に`MessageGroupId`を付けるかどうかです。
 
@@ -54,29 +52,20 @@ flowchart LR
         BC100["baseline-c100<br/>Standard Queue<br/>MessageGroupIdなし"] --> BL100["Go Consumer Lambda<br/>BatchSize = 1"]
     end
 
-    subgraph C29["Maximum Concurrency = 29"]
-        FC29["fair-c29<br/>Standard Queue<br/>MessageGroupIdあり"] --> FL29["Go Consumer Lambda<br/>BatchSize = 1"]
-        BC29["baseline-c29<br/>Standard Queue<br/>MessageGroupIdなし"] --> BL29["Go Consumer Lambda<br/>BatchSize = 1"]
-    end
-
-    subgraph C30["Maximum Concurrency = 30"]
-        FC30["fair-c30<br/>Standard Queue<br/>MessageGroupIdあり"] --> FL30["Go Consumer Lambda<br/>BatchSize = 1"]
-        BC30["baseline-c30<br/>Standard Queue<br/>MessageGroupIdなし"] --> BL30["Go Consumer Lambda<br/>BatchSize = 1"]
+    subgraph C20["Maximum Concurrency = 20"]
+        FC20["fair-c20<br/>Standard Queue<br/>MessageGroupIdあり"] --> FL20["Go Consumer Lambda<br/>BatchSize = 1"]
+        BC20["baseline-c20<br/>Standard Queue<br/>MessageGroupIdなし"] --> BL20["Go Consumer Lambda<br/>BatchSize = 1"]
     end
 
     Runner --> FC100
     Runner --> BC100
-    Runner --> FC29
-    Runner --> BC29
-    Runner --> FC30
-    Runner --> BC30
+    Runner --> FC20
+    Runner --> BC20
 
     FL100 --> Logs["CloudWatch Logs<br/>message_started JSON"]
     BL100 --> Logs
-    FL29 --> Logs
-    BL29 --> Logs
-    FL30 --> Logs
-    BL30 --> Logs
+    FL20 --> Logs
+    BL20 --> Logs
     Logs --> Runner
     Metrics["SQS・Lambda Metrics"] --> Dashboard["CloudWatch Dashboard"]
 ```
@@ -144,65 +133,7 @@ Consumerは処理を始めた直後に、次のJSONを標準出力へ記録し�
 
 `dwell_ms`は、SQSが付与した`SentTimestamp`からLambdaハンドラー開始までの時間です。ログ出力後は`work_ms`だけ`time.Sleep`し、メッセージを意図的にin-flightへ保持します。
 
-## 検証1：最大同時実行数29での挙動
-
-`fair-c29`と`baseline-c29`を使用します。`BatchSize=1`かつLambda Maximum Concurrencyを29に設定し、同時呼び出し数を29以下へ制限します。Lambda同時実行数とSQS in-flightは同一の値ではないため、`ApproximateNumberOfMessagesNotVisible`も合わせて確認します。
-
-ただし、Aが29スロットを長時間占有すると、Aの処理時間シェアはほぼ100%になります。この場合はProcessing-time share経路でnoisy tenantと判定される可能性があります。そのため、短時間試験と長時間試験に分けます。
-
-```mermaid
-flowchart LR
-    Load["Aを大量送信<br/>B・Cを継続送信"] --> Limit["Maximum Concurrency = 29<br/>BatchSize = 1"]
-    Limit --> Short["短時間試験<br/>約15秒"]
-    Limit --> Long["長時間試験<br/>約120秒"]
-    Short --> CountResult["30件条件を満たしにくい構成の<br/>fair / baselineを比較"]
-    Long --> TimeResult["Processing-time経路による<br/>後発の平準化を観測"]
-```
-
-### 1-A：短時間試験
-
-```bash
-build/experiment run-low \
-  --mode short \
-  --config build/experiment-config.json
-```
-
-確認する内容：
-
-- Lambda最大同時実行数が29以下である
-- 1秒間隔の`GetQueueAttributes`観測でSQSのApproximate in-flightが概ね29以下である
-- Aの`handler-active estimate`が30未満で推移したか
-- 短い観測期間でB・Cのdwell timeに改善が現れるか
-
-これは「Concurrency share経路の30件条件を満たしにくい構成での早期挙動」を見る試験です。`GetQueueAttributes`はApproximateであり、イベントソースマッピングがLambda呼び出し前に保持するメッセージもあり得るため、「常に厳密に30未満」とは表現しません。Fair Queuesが動かないことや、AWS内部の判定経路を直接証明する試験でもありません。
-
-### 1-B：長時間試験
-
-```bash
-build/experiment run-low \
-  --mode long \
-  --config build/experiment-config.json
-```
-
-長時間継続した後に`fair-c29`だけB・Cのdwell timeが改善した場合、Processing-time share経路が働いた可能性を示します。AWS内部の集計窓は非公開なので、`ApproximateNumberOfNoisyGroups`とbaselineとの差を合わせて判断します。
-
-## 29/30境界試験（探索的）
-
-同じ短時間負荷をMaximum Concurrency 29と30で別々に実行します。
-
-```bash
-build/experiment run-boundary \
-  --concurrency 29 \
-  --config build/experiment-config.json
-
-build/experiment run-boundary \
-  --concurrency 30 \
-  --config build/experiment-config.json
-```
-
-各条件を5〜10回実行し、Fair/Baseline差、B・Cの回復時間、SQS in-flight、`ApproximateNumberOfNoisyGroups`を比較します。ただし、これはLambda Maximum Concurrencyの境界に対する探索的試験です。Maximum ConcurrencyとA自身のSQS in-flightは同一ではなく、デフォルトではB・Cが約20スロットを使うため、`c30`を「Aが30件以上」の証拠には使用しません。Concurrency share経路が成立し得る側は、`fair-c100`でAの`handler-active estimate >= 30`を確認して代表させます。
-
-## 検証2：バースト後の反応時間
+## 検証1：バースト後の反応時間
 
 `fair-c100`と`baseline-c100`へ同じ負荷を送ります。
 
@@ -246,7 +177,7 @@ sequenceDiagram
 
 10%条件との整合性確認には、1秒ごとの`A handler-active / ApproximateNumberOfMessagesNotVisible`を`count_share_proxy`として別途出力します。分子はハンドラー開始前のin-flightメッセージを含まない下限推定で、分母はSQSのApproximate属性です。そのため`criteria_proxy_met=true`は観測値がConcurrency share条件と整合したことを示す強い補助証拠として扱いますが、AWS内部判定の直接的な証明ではありません。`false`の場合も、AWS内部で条件を満たさなかったとは判断しません。
 
-30件以上側の代表証拠には`fair-c100`を使用します。デフォルト負荷ではB・Cプローブが100msごとに1件、各2秒処理されるため、定常時に合計約20スロットを使います。そのため`c30`でA自身が30件へ到達することは期待しません。
+30件以上側の代表証拠には`fair-c100`を使用します。検証2の`c20`はLambda同時呼び出し数自体が20以下であるため、Concurrency share経路よりも、少数コンシューマー構成でquiet tenantの遅延改善を実際に観測できるかをfair/baselineの差から確認します。
 
 CloudWatchのSQSメトリクスは1分粒度なので、秒単位の反応時間にはConsumerログを使います。実験CLIはこれとは別に、実験中の`GetQueueAttributes`をデフォルト1秒間隔で保存します。属性値自体はApproximateであるため、厳密な上限の証明ではなく観測された短時間ピークの証拠として扱います。取得失敗は0へ変換せず`status=error`の欠測行として保存し、次のtickで再試行します。5回連続で失敗した場合もmanifestと部分CSVを保存してからエラー終了します。`ApproximateNumberOfNoisyGroups`も補助証拠です。
 
@@ -262,7 +193,7 @@ build/experiment run-reaction \
   --work-ms 2000
 ```
 
-1回の結果だけで断定せず、キューを空にした状態から5〜10回実行し、反応時間の中央値とp95を比較してください。各実行で`collect`まで完了した後、次の例で検証2の`recovery-estimate.json`をシナリオ別に集計できます。
+1回の結果だけで断定せず、キューを空にした状態から5〜10回実行し、反応時間の中央値とp95を比較してください。各実行で`collect`まで完了した後、次の例で検証1の`recovery-estimate.json`をシナリオ別に集計できます。
 
 ```bash
 jq -s '
@@ -291,6 +222,57 @@ jq -s '
 
 中央値・p95は回復を観測できた試行だけから計算されるため、`total_runs`、`recovered_runs`、`unrecovered_runs`を必ず併記してください。回復しなかった試行を無視して中央値だけを比較すると、結果を良い側へ偏らせます。
 
+## 検証2：最大同時実行数20でのFair Queues効果
+
+`fair-c20`と`baseline-c20`を同時に使用します。`BatchSize=1`かつLambda Maximum Concurrencyを20に設定し、同じA/B/C負荷に対するquiet tenantのdwell timeを比較します。`fair-c20`だけでは、B・Cの遅延がFair Queuesによって改善したのか、通常のLambda/SQSの処理順によるものか判断できないため、`baseline-c20`を必須の比較対象とします。
+
+Maximum Concurrency 20ではLambdaハンドラー内で同時処理中となるメッセージは20件以下です。ただし、イベントソースマッピングがハンドラー開始前に受信したメッセージもSQS in-flightへ含まれるため、テナントAのin-flightが必ず30件未満になるとは保証できません。本試験はConcurrency share経路の不成立を証明するものではなく、少数コンシューマー構成でfair/baseline間の改善量と改善開始時間を確認する試験です。Processing-time share経路でnoisy tenantと判定される可能性も残ります。
+
+検証2では、測定中のB/Cプローブとは独立した`--baseline-interval`を使用します。既定では500ms間隔で100秒間、合計200件（B/C各約100件）のbaselineを取得します。これによりc20をbaseline負荷だけで飽和させず、回復しきい値に使用するbaseline p95の標本数も確保します。
+
+```mermaid
+flowchart LR
+    Load["Aを大量送信<br/>B・Cを継続送信"] --> Limit["Maximum Concurrency = 20<br/>BatchSize = 1"]
+    Limit --> Short["短時間試験<br/>約15秒"]
+    Limit --> Long["長時間試験<br/>約120秒"]
+    Short --> CountResult["少数コンシューマー構成の<br/>fair / baselineを比較"]
+    Long --> TimeResult["Processing-time経路による<br/>後発の平準化を観測"]
+```
+
+### 2-A：短時間試験
+
+```bash
+build/experiment run-low \
+  --mode short \
+  --config build/experiment-config.json
+```
+
+`--probe-interval`を省略すると500ms、`--probes`を省略すると30件となり、観測窓は約15秒です。`work-ms=2000`の場合、B・Cが定常的に使用するスロットは合計約4となり、残りをAが使用できます。baselineの既定値は`--baseline-interval 500ms --baseline-duration 100s`です。
+
+確認する内容：
+
+- `fair-c20`と`baseline-c20`の両方が実行結果に含まれる
+- Lambda最大同時実行数が20以下である
+- 1秒間隔の`GetQueueAttributes`でSQSのApproximate in-flightを確認できる
+- Aの`handler-active estimate`が30未満で推移したか
+- 短い観測期間で`fair-c20`のB・Cのdwell timeが`baseline-c20`より改善するか
+
+観測した`ApproximateNumberOfMessagesNotVisible`が30件以上となった試行では、Concurrency share経路を除外できません。30件未満で推移した場合も値はApproximateであるため、経路不成立の直接証明ではなく補助証拠として扱います。
+
+これは「少数コンシューマー構成でFair Queuesによる改善を観測できるか」を見る試験です。差がなかった場合もFair Queuesが無効であるとは断定せず、「この負荷・観測期間ではfair/baseline間の改善を確認できなかった」と判断します。
+
+### 2-B：長時間試験
+
+```bash
+build/experiment run-low \
+  --mode long \
+  --config build/experiment-config.json
+```
+
+`--probe-interval`を省略すると500ms、`--probes`を省略すると240件となり、観測窓は約120秒です。長時間継続した後に`fair-c20`だけB・Cのdwell timeが改善した場合、Processing-time share経路が働いた可能性を示します。AWS内部の集計窓は非公開なので、`ApproximateNumberOfNoisyGroups`とbaselineとの差を合わせて判断します。
+
+各モードを5〜10回実行し、`fair-c20`と`baseline-c20`のB・Cについてp50・p95、回復時間、SQS in-flight、`ApproximateNumberOfNoisyGroups`を比較してください。
+
 ## 必要なもの
 
 - Docker
@@ -298,7 +280,13 @@ jq -s '
 - 実AWS検証時に利用できるAWS認証情報
 - Lambda同時実行クォータ
 
-デフォルトでは6関数に合計348のReserved Concurrencyを設定し、各イベントソースの上限より5多く確保します。Lambdaが要求する未予約同時実行枠100も必要になるため、アカウントの同時実行クォータは少なくとも448必要です。クォータが不足する場合は`reserve_concurrency=false`で構築できますが、他ワークロードの影響を受けやすくなります。
+`reserve_concurrency=true`の場合、各関数にイベントソースの上限より5多いReserved Concurrencyを設定します。必要な合計はTerraformが計算するため、適用後に次のコマンドで確認してください。
+
+```bash
+terraform -chdir=terraform output reserved_concurrency_total
+```
+
+アカウントの同時実行クォータには、この出力値に加えてLambdaが要求する未予約同時実行枠も必要です。クォータが不足する場合は`reserve_concurrency=false`で構築できますが、他ワークロードの影響を受けやすくなります。
 
 実験CLIを実行するIAM主体には、対象キューへの以下の権限が必要です。
 
@@ -398,9 +386,13 @@ results/<experiment-id>/
 - `summary.json`：キューが空になるまでの全期間について、シナリオ・テナント・phaseごとの件数、p50、p95、最大dwell time
 - `observation-summary.json`：バースト開始からプローブ送信終了までに送信されたメッセージを集計。処理開始が観測窓より後になった遅延メッセージも含む
 - `recovery-estimate.json`：最初のAメッセージのSQS `SentTimestamp`をt=0とし、B・Cそれぞれについてbaseline p95から平常範囲を算出。各テナントの直近10件中8件以上が範囲内となり、B・Cの両方が回復した時刻を保存する
-- `metrics.json`：SQSのnoisy group・in-flight・quiet group in-flightとLambda同時実行数を1分粒度のMaximumで保存。秒単位の反応時間ではなく補助証拠として使用する
+- `metrics.json`：SQSのnoisy group・in-flight・quiet group in-flightとLambda同時実行数を1分粒度のMaximumで保存。各ポイントに`phase`（`baseline`、`measurement`、`drain`、`boundary_overlap`）とバースト開始からの`elapsed_ms`を付与する。秒単位の反応時間ではなく補助証拠として使用する
+
+CloudWatchの1分バケットがバースト開始または観測終了をまたぐ場合は`phase=boundary_overlap`とします。Aのバーストによる変化を確認するときは`measurement`のポイントを使用し、`baseline`や`boundary_overlap`のMaximumを混在させないでください。
 
 `recovery-estimate.json`の平常範囲の上限（回復しきい値）は、B・Cごとに`max(2 × baseline p95, baseline p95 + 250ms)`で計算します。baselineを取得できなかった場合は`2 × work_ms`へフォールバックします。悪化を観測した後、各テナントの直近10件中8件以上がこのしきい値以下となった最初の窓を回復とし、その窓の最後のメッセージ開始時刻を採用します。`recovery_latency_ms`は悪化検出時点からではなく、Aのバースト開始からB・Cの両方が回復するまでの時間です。このしきい値は本検証の分析用定義であり、AWS Fair Queues内部の判定しきい値ではありません。
+
+manifestには`baseline_duration_ms`、`baseline_interval_ms`、`baseline_messages_per_scenario`を保存し、回復しきい値の算出に使用したbaseline条件を再現できるようにします。
 
 CloudWatch Logsまたはメトリクスの到着が遅れて一部件数が不足した場合は、数分待ってから同じ`collect`コマンドを再実行できます。
 

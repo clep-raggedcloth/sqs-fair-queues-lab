@@ -27,6 +27,8 @@ type Manifest struct {
 	ObservationWindowMS   int                       `json:"observation_window_ms"`
 	WarmupMessages        int                       `json:"warmup_messages_per_scenario"`
 	BaselineDurationMS    int                       `json:"baseline_duration_ms"`
+	BaselineIntervalMS    int                       `json:"baseline_interval_ms"`
+	BaselineMessages      int                       `json:"baseline_messages_per_scenario"`
 	MaximumConcurrency    int                       `json:"maximum_concurrency"`
 	ScenarioTimings       map[string]ScenarioTiming `json:"scenario_timings,omitempty"`
 }

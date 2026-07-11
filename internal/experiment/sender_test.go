@@ -41,7 +41,7 @@ func TestSampleQueueDepthsRecordsApproximateAttributes(t *testing.T) {
 	ctx, cancel := context.WithTimeout(context.Background(), 25*time.Millisecond)
 	defer cancel()
 	samples, err := NewSender(&fakeSQSClient{}).SampleQueueDepths(ctx, map[string]Scenario{
-		"fair-c29": {QueueURL: "queue"},
+		"fair-c20": {QueueURL: "queue"},
 	}, 5*time.Millisecond)
 	if err != nil {
 		t.Fatal(err)
@@ -50,7 +50,7 @@ func TestSampleQueueDepthsRecordsApproximateAttributes(t *testing.T) {
 		t.Fatalf("sample count = %d, want at least 2", len(samples))
 	}
 	for _, sample := range samples {
-		if sample.Scenario != "fair-c29" || sample.ApproximateVisible != 42 || sample.ApproximateNotVisible != 29 || sample.Status != QueueSampleStatusOK {
+		if sample.Scenario != "fair-c20" || sample.ApproximateVisible != 42 || sample.ApproximateNotVisible != 29 || sample.Status != QueueSampleStatusOK {
 			t.Fatalf("unexpected sample: %+v", sample)
 		}
 	}
@@ -58,7 +58,7 @@ func TestSampleQueueDepthsRecordsApproximateAttributes(t *testing.T) {
 
 func TestSampleQueueDepthsRecordsErrorsBeforeConsecutiveFailure(t *testing.T) {
 	samples, err := NewSender(&missingAttributeSQSClient{}).SampleQueueDepths(context.Background(), map[string]Scenario{
-		"fair-c29": {QueueURL: "queue"},
+		"fair-c20": {QueueURL: "queue"},
 	}, time.Millisecond)
 	if err == nil {
 		t.Fatal("SampleQueueDepths() error = nil, want consecutive-failure error")
@@ -107,10 +107,10 @@ func TestSendManyWithFirstAcceptedCallsBarrierOnce(t *testing.T) {
 	client := &fakeSQSClient{}
 	works := make([]message.Work, 25)
 	for i := range works {
-		works[i] = message.New("exp", "fair-c29", "A", "burst", i, 1, time.Now())
+		works[i] = message.New("exp", "fair-c20", "A", "burst", i, 1, time.Now())
 	}
 	var callbackCalls atomic.Int32
-	err := NewSender(client).SendManyWithFirstAccepted(context.Background(), "fair-c29", Scenario{QueueURL: "queue", UseMessageGroupID: true}, works, 4, func(time.Time) {
+	err := NewSender(client).SendManyWithFirstAccepted(context.Background(), "fair-c20", Scenario{QueueURL: "queue", UseMessageGroupID: true}, works, 4, func(time.Time) {
 		callbackCalls.Add(1)
 	})
 	if err != nil {

@@ -10,25 +10,15 @@ locals {
       use_message_group_id = false
       description          = "Standard Queue baseline without MessageGroupId Lambda maximum concurrency 100"
     }
-    fair-c29 = {
-      maximum_concurrency  = 29
+    fair-c20 = {
+      maximum_concurrency  = 20
       use_message_group_id = true
-      description          = "Fair Queue enabled by tenant MessageGroupId Lambda maximum concurrency 29"
+      description          = "Fair Queue enabled by tenant MessageGroupId Lambda maximum concurrency 20"
     }
-    baseline-c29 = {
-      maximum_concurrency  = 29
+    baseline-c20 = {
+      maximum_concurrency  = 20
       use_message_group_id = false
-      description          = "Standard Queue baseline without MessageGroupId Lambda maximum concurrency 29"
-    }
-    fair-c30 = {
-      maximum_concurrency  = 30
-      use_message_group_id = true
-      description          = "Fair Queue enabled by tenant MessageGroupId Lambda maximum concurrency 30"
-    }
-    baseline-c30 = {
-      maximum_concurrency  = 30
-      use_message_group_id = false
-      description          = "Standard Queue baseline without MessageGroupId Lambda maximum concurrency 30"
+      description          = "Standard Queue baseline without MessageGroupId Lambda maximum concurrency 20"
     }
   }
 

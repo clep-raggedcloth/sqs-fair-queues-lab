@@ -21,8 +21,8 @@
     "scenario": "baseline-c20",
     "tenant": "B",
     "phase": "probe",
-    "count": 595,
-    "p50_dwell_ms": 3602,
+    "count": 600,
+    "p50_dwell_ms": 4274,
     "p95_dwell_ms": 624724,
     "max_dwell_ms": 707144
   },
@@ -39,8 +39,8 @@
     "scenario": "baseline-c20",
     "tenant": "C",
     "phase": "probe",
-    "count": 587,
-    "p50_dwell_ms": 201648,
+    "count": 600,
+    "p50_dwell_ms": 204381,
     "p95_dwell_ms": 642641,
     "max_dwell_ms": 712645
   },
@@ -66,8 +66,8 @@
     "scenario": "fair-c20",
     "tenant": "B",
     "phase": "probe",
-    "count": 593,
-    "p50_dwell_ms": 148917,
+    "count": 600,
+    "p50_dwell_ms": 153701,
     "p95_dwell_ms": 639787,
     "max_dwell_ms": 699958
   },
@@ -84,8 +84,8 @@
     "scenario": "fair-c20",
     "tenant": "C",
     "phase": "probe",
-    "count": 590,
-    "p50_dwell_ms": 135311,
+    "count": 600,
+    "p50_dwell_ms": 147804,
     "p95_dwell_ms": 624142,
     "max_dwell_ms": 700818
   }

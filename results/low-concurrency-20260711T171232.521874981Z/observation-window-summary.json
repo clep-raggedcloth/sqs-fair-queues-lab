@@ -18,12 +18,12 @@
     "window_start_ms": 0,
     "window_end_ms": 200000,
     "expected_count": 200,
-    "observed_count": 196,
-    "completion_rate": 0.98,
+    "observed_count": 200,
+    "completion_rate": 1,
     "p50_dwell_ms": 537555,
     "p95_dwell_ms": 669507,
     "max_dwell_ms": 712645,
-    "status": "incomplete"
+    "status": "complete"
   },
   {
     "scenario": "baseline-c20",
@@ -31,12 +31,12 @@
     "window_start_ms": 200000,
     "window_end_ms": 400000,
     "expected_count": 200,
-    "observed_count": 199,
-    "completion_rate": 0.995,
+    "observed_count": 200,
+    "completion_rate": 1,
     "p50_dwell_ms": 2449,
     "p95_dwell_ms": 475945,
     "max_dwell_ms": 524606,
-    "status": "incomplete"
+    "status": "complete"
   },
   {
     "scenario": "baseline-c20",
@@ -44,12 +44,12 @@
     "window_start_ms": 200000,
     "window_end_ms": 400000,
     "expected_count": 200,
-    "observed_count": 195,
-    "completion_rate": 0.975,
-    "p50_dwell_ms": 320431,
-    "p95_dwell_ms": 491636,
+    "observed_count": 200,
+    "completion_rate": 1,
+    "p50_dwell_ms": 322680,
+    "p95_dwell_ms": 493263,
     "max_dwell_ms": 519003,
-    "status": "incomplete"
+    "status": "complete"
   },
   {
     "scenario": "baseline-c20",
@@ -57,12 +57,12 @@
     "window_start_ms": 400000,
     "window_end_ms": 600000,
     "expected_count": 200,
-    "observed_count": 196,
-    "completion_rate": 0.98,
-    "p50_dwell_ms": 3229,
+    "observed_count": 200,
+    "completion_rate": 1,
+    "p50_dwell_ms": 3458,
     "p95_dwell_ms": 296029,
     "max_dwell_ms": 329397,
-    "status": "incomplete"
+    "status": "complete"
   },
   {
     "scenario": "baseline-c20",
@@ -70,12 +70,12 @@
     "window_start_ms": 400000,
     "window_end_ms": 600000,
     "expected_count": 200,
-    "observed_count": 196,
-    "completion_rate": 0.98,
-    "p50_dwell_ms": 2720,
+    "observed_count": 200,
+    "completion_rate": 1,
+    "p50_dwell_ms": 3019,
     "p95_dwell_ms": 301278,
     "max_dwell_ms": 334295,
-    "status": "incomplete"
+    "status": "complete"
   },
   {
     "scenario": "fair-c20",
@@ -96,12 +96,12 @@
     "window_start_ms": 0,
     "window_end_ms": 200000,
     "expected_count": 200,
-    "observed_count": 199,
-    "completion_rate": 0.995,
+    "observed_count": 200,
+    "completion_rate": 1,
     "p50_dwell_ms": 505308,
     "p95_dwell_ms": 661488,
     "max_dwell_ms": 700818,
-    "status": "incomplete"
+    "status": "complete"
   },
   {
     "scenario": "fair-c20",
@@ -109,12 +109,12 @@
     "window_start_ms": 200000,
     "window_end_ms": 400000,
     "expected_count": 200,
-    "observed_count": 198,
-    "completion_rate": 0.99,
-    "p50_dwell_ms": 4372,
+    "observed_count": 200,
+    "completion_rate": 1,
+    "p50_dwell_ms": 4482,
     "p95_dwell_ms": 488086,
     "max_dwell_ms": 514743,
-    "status": "incomplete"
+    "status": "complete"
   },
   {
     "scenario": "fair-c20",
@@ -122,12 +122,12 @@
     "window_start_ms": 200000,
     "window_end_ms": 400000,
     "expected_count": 200,
-    "observed_count": 197,
-    "completion_rate": 0.985,
-    "p50_dwell_ms": 298462,
+    "observed_count": 200,
+    "completion_rate": 1,
+    "p50_dwell_ms": 302806,
     "p95_dwell_ms": 491278,
     "max_dwell_ms": 518294,
-    "status": "incomplete"
+    "status": "complete"
   },
   {
     "scenario": "fair-c20",
@@ -135,12 +135,12 @@
     "window_start_ms": 400000,
     "window_end_ms": 600000,
     "expected_count": 200,
-    "observed_count": 195,
-    "completion_rate": 0.975,
-    "p50_dwell_ms": 3266,
+    "observed_count": 200,
+    "completion_rate": 1,
+    "p50_dwell_ms": 3594,
     "p95_dwell_ms": 291432,
     "max_dwell_ms": 336264,
-    "status": "incomplete"
+    "status": "complete"
   },
   {
     "scenario": "fair-c20",
@@ -148,11 +148,11 @@
     "window_start_ms": 400000,
     "window_end_ms": 600000,
     "expected_count": 200,
-    "observed_count": 194,
-    "completion_rate": 0.97,
-    "p50_dwell_ms": 9709,
-    "p95_dwell_ms": 290484,
+    "observed_count": 200,
+    "completion_rate": 1,
+    "p50_dwell_ms": 118904,
+    "p95_dwell_ms": 294770,
     "max_dwell_ms": 319580,
-    "status": "incomplete"
+    "status": "complete"
   }
 ]

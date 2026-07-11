@@ -2,8 +2,8 @@
 
 Amazon SQS Standard QueueでFair Queuesを利用し、次の2点をAWS上で検証するためのコードです。
 
-1. テナントAのバースト発生後、静かなテナントB・Cのdwell timeが平常値へ戻るまでの時間
-2. Lambdaの最大同時実行数を29に制限したとき、Fair Queuesの2つの検出経路がどう動くか
+1. Lambdaの最大同時実行数を29に制限したとき、Fair Queuesの2つの検出経路がどう動くか
+2. テナントAのバースト発生後、静かなテナントB・Cのdwell timeが平常値へ戻るまでの時間
 
 ConsumerはGoのLambda、AWSリソースはTerraform、負荷生成と結果回収はGo CLIで実装しています。開発環境にはDev Containerを使用します。
 
@@ -144,7 +144,65 @@ Consumerは処理を始めた直後に、次のJSONを標準出力へ記録し�
 
 `dwell_ms`は、SQSが付与した`SentTimestamp`からLambdaハンドラー開始までの時間です。ログ出力後は`work_ms`だけ`time.Sleep`し、メッセージを意図的にin-flightへ保持します。
 
-## 検証1：バースト後の反応時間
+## 検証1：最大同時実行数29での挙動
+
+`fair-c29`と`baseline-c29`を使用します。`BatchSize=1`かつLambda Maximum Concurrencyを29に設定し、同時呼び出し数を29以下へ制限します。Lambda同時実行数とSQS in-flightは同一の値ではないため、`ApproximateNumberOfMessagesNotVisible`も合わせて確認します。
+
+ただし、Aが29スロットを長時間占有すると、Aの処理時間シェアはほぼ100%になります。この場合はProcessing-time share経路でnoisy tenantと判定される可能性があります。そのため、短時間試験と長時間試験に分けます。
+
+```mermaid
+flowchart LR
+    Load["Aを大量送信<br/>B・Cを継続送信"] --> Limit["Maximum Concurrency = 29<br/>BatchSize = 1"]
+    Limit --> Short["短時間試験<br/>約15秒"]
+    Limit --> Long["長時間試験<br/>約120秒"]
+    Short --> CountResult["30件条件を満たしにくい構成の<br/>fair / baselineを比較"]
+    Long --> TimeResult["Processing-time経路による<br/>後発の平準化を観測"]
+```
+
+### 1-A：短時間試験
+
+```bash
+build/experiment run-low \
+  --mode short \
+  --config build/experiment-config.json
+```
+
+確認する内容：
+
+- Lambda最大同時実行数が29以下である
+- 1秒間隔の`GetQueueAttributes`観測でSQSのApproximate in-flightが概ね29以下である
+- Aの`handler-active estimate`が30未満で推移したか
+- 短い観測期間でB・Cのdwell timeに改善が現れるか
+
+これは「Concurrency share経路の30件条件を満たしにくい構成での早期挙動」を見る試験です。`GetQueueAttributes`はApproximateであり、イベントソースマッピングがLambda呼び出し前に保持するメッセージもあり得るため、「常に厳密に30未満」とは表現しません。Fair Queuesが動かないことや、AWS内部の判定経路を直接証明する試験でもありません。
+
+### 1-B：長時間試験
+
+```bash
+build/experiment run-low \
+  --mode long \
+  --config build/experiment-config.json
+```
+
+長時間継続した後に`fair-c29`だけB・Cのdwell timeが改善した場合、Processing-time share経路が働いた可能性を示します。AWS内部の集計窓は非公開なので、`ApproximateNumberOfNoisyGroups`とbaselineとの差を合わせて判断します。
+
+## 29/30境界試験（探索的）
+
+同じ短時間負荷をMaximum Concurrency 29と30で別々に実行します。
+
+```bash
+build/experiment run-boundary \
+  --concurrency 29 \
+  --config build/experiment-config.json
+
+build/experiment run-boundary \
+  --concurrency 30 \
+  --config build/experiment-config.json
+```
+
+各条件を5〜10回実行し、Fair/Baseline差、B・Cの回復時間、SQS in-flight、`ApproximateNumberOfNoisyGroups`を比較します。ただし、これはLambda Maximum Concurrencyの境界に対する探索的試験です。Maximum ConcurrencyとA自身のSQS in-flightは同一ではなく、デフォルトではB・Cが約20スロットを使うため、`c30`を「Aが30件以上」の証拠には使用しません。Concurrency share経路が成立し得る側は、`fair-c100`でAの`handler-active estimate >= 30`を確認して代表させます。
+
+## 検証2：バースト後の反応時間
 
 `fair-c100`と`baseline-c100`へ同じ負荷を送ります。
 
@@ -204,7 +262,7 @@ build/experiment run-reaction \
   --work-ms 2000
 ```
 
-1回の結果だけで断定せず、キューを空にした状態から5〜10回実行し、反応時間の中央値とp95を比較してください。各実行で`collect`まで完了した後、次の例で検証1の`recovery-estimate.json`をシナリオ別に集計できます。
+1回の結果だけで断定せず、キューを空にした状態から5〜10回実行し、反応時間の中央値とp95を比較してください。各実行で`collect`まで完了した後、次の例で検証2の`recovery-estimate.json`をシナリオ別に集計できます。
 
 ```bash
 jq -s '
@@ -232,64 +290,6 @@ jq -s '
 ```
 
 中央値・p95は回復を観測できた試行だけから計算されるため、`total_runs`、`recovered_runs`、`unrecovered_runs`を必ず併記してください。回復しなかった試行を無視して中央値だけを比較すると、結果を良い側へ偏らせます。
-
-## 29/30境界試験（探索的）
-
-同じ短時間負荷をMaximum Concurrency 29と30で別々に実行します。
-
-```bash
-build/experiment run-boundary \
-  --concurrency 29 \
-  --config build/experiment-config.json
-
-build/experiment run-boundary \
-  --concurrency 30 \
-  --config build/experiment-config.json
-```
-
-各条件を5〜10回実行し、Fair/Baseline差、B・Cの回復時間、SQS in-flight、`ApproximateNumberOfNoisyGroups`を比較します。ただし、これはLambda Maximum Concurrencyの境界に対する探索的試験です。Maximum ConcurrencyとA自身のSQS in-flightは同一ではなく、デフォルトではB・Cが約20スロットを使うため、`c30`を「Aが30件以上」の証拠には使用しません。Concurrency share経路が成立し得る側は、`fair-c100`でAの`handler-active estimate >= 30`を確認して代表させます。
-
-## 検証2：最大同時実行数29での挙動
-
-`fair-c29`と`baseline-c29`を使用します。`BatchSize=1`かつLambda Maximum Concurrencyを29に設定し、同時呼び出し数を29以下へ制限します。Lambda同時実行数とSQS in-flightは同一の値ではないため、`ApproximateNumberOfMessagesNotVisible`も合わせて確認します。
-
-ただし、Aが29スロットを長時間占有すると、Aの処理時間シェアはほぼ100%になります。この場合はProcessing-time share経路でnoisy tenantと判定される可能性があります。そのため、短時間試験と長時間試験に分けます。
-
-```mermaid
-flowchart LR
-    Load["Aを大量送信<br/>B・Cを継続送信"] --> Limit["Maximum Concurrency = 29<br/>BatchSize = 1"]
-    Limit --> Short["短時間試験<br/>約15秒"]
-    Limit --> Long["長時間試験<br/>約120秒"]
-    Short --> CountResult["30件条件を満たしにくい構成の<br/>fair / baselineを比較"]
-    Long --> TimeResult["Processing-time経路による<br/>後発の平準化を観測"]
-```
-
-### 2-A：短時間試験
-
-```bash
-build/experiment run-low \
-  --mode short \
-  --config build/experiment-config.json
-```
-
-確認する内容：
-
-- Lambda最大同時実行数が29以下である
-- 1秒間隔の`GetQueueAttributes`観測でSQSのApproximate in-flightが概ね29以下である
-- Aの`handler-active estimate`が30未満で推移したか
-- 短い観測期間でB・Cのdwell timeに改善が現れるか
-
-これは「Concurrency share経路の30件条件を満たしにくい構成での早期挙動」を見る試験です。`GetQueueAttributes`はApproximateであり、イベントソースマッピングがLambda呼び出し前に保持するメッセージもあり得るため、「常に厳密に30未満」とは表現しません。Fair Queuesが動かないことや、AWS内部の判定経路を直接証明する試験でもありません。
-
-### 2-B：長時間試験
-
-```bash
-build/experiment run-low \
-  --mode long \
-  --config build/experiment-config.json
-```
-
-長時間継続した後に`fair-c29`だけB・Cのdwell timeが改善した場合、Processing-time share経路が働いた可能性を示します。AWS内部の集計窓は非公開なので、`ApproximateNumberOfNoisyGroups`とbaselineとの差を合わせて判断します。
 
 ## 必要なもの
 

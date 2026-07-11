@@ -10,24 +10,13 @@ import (
 )
 
 func TestParseLowOptionsUsesCapacity20LoadDefaults(t *testing.T) {
-	tests := []struct {
-		mode       string
-		wantProbes int
-	}{
-		{mode: "short", wantProbes: 30},
-		{mode: "long", wantProbes: 240},
+	opts, err := parseLowOptions(nil)
+	if err != nil {
+		t.Fatal(err)
 	}
-	for _, test := range tests {
-		t.Run(test.mode, func(t *testing.T) {
-			opts, err := parseLowOptions([]string{"--mode", test.mode})
-			if err != nil {
-				t.Fatal(err)
-			}
-			if opts.probeMessages != test.wantProbes || opts.probeInterval != 500*time.Millisecond ||
-				opts.baselineDuration != 100*time.Second || opts.baselineInterval != 500*time.Millisecond || baselineMessageCount(opts) != 200 {
-				t.Fatalf("unexpected run-low defaults: %+v, baseline messages=%d", opts, baselineMessageCount(opts))
-			}
-		})
+	if opts.probeMessages != 1200 || opts.probeInterval != 500*time.Millisecond ||
+		opts.baselineDuration != 100*time.Second || opts.baselineInterval != 500*time.Millisecond || baselineMessageCount(opts) != 200 {
+		t.Fatalf("unexpected run-low defaults: %+v, baseline messages=%d", opts, baselineMessageCount(opts))
 	}
 }
 
@@ -41,7 +30,7 @@ func TestLowHelpShowsEffectiveDefaults(t *testing.T) {
 	}
 	help := output.String()
 	for _, expected := range []string{
-		"0 selects 30 for short or 240 for long",
+		"(default 1200)",
 		"(default 500ms)",
 		"(default 1m40s)",
 	} {
@@ -62,7 +51,7 @@ func TestRunLowHelpIsSuccessful(t *testing.T) {
 }
 
 func TestParseLowOptionsPreservesExplicitProbeLoad(t *testing.T) {
-	opts, err := parseLowOptions([]string{"--mode", "short", "--probes", "40", "--probe-interval", "250ms"})
+	opts, err := parseLowOptions([]string{"--probes", "40", "--probe-interval", "250ms"})
 	if err != nil {
 		t.Fatal(err)
 	}

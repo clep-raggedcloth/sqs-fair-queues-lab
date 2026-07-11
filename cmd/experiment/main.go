@@ -31,7 +31,6 @@ type runOptions struct {
 	baselineInterval    time.Duration
 	warmup              int
 	sendWorkers         int
-	mode                string
 }
 
 func main() {
@@ -67,7 +66,7 @@ func commandSucceeded(err error) bool {
 func usage() {
 	fmt.Fprintln(os.Stderr, `Usage:
   experiment run-reaction [flags]
-  experiment run-low --mode short|long [flags]
+  experiment run-low [flags]
   experiment collect --manifest results/<id>/manifest.json [flags]
   experiment purge [flags]`)
 }
@@ -75,7 +74,6 @@ func usage() {
 type runDefaults struct {
 	probeMessages    int
 	probeInterval    time.Duration
-	probeDescription string
 	baselineDuration time.Duration
 	baselineInterval time.Duration
 }
@@ -83,15 +81,13 @@ type runDefaults struct {
 func reactionRunDefaults() runDefaults {
 	return runDefaults{
 		probeMessages: 300, probeInterval: 100 * time.Millisecond,
-		probeDescription: "Quiet-tenant probe messages per scenario",
 		baselineDuration: 20 * time.Second, baselineInterval: 100 * time.Millisecond,
 	}
 }
 
 func lowRunDefaults() runDefaults {
 	return runDefaults{
-		probeMessages: 0, probeInterval: 500 * time.Millisecond,
-		probeDescription: "Quiet-tenant probe messages per scenario; 0 selects 30 for short or 240 for long",
+		probeMessages: 1200, probeInterval: 500 * time.Millisecond,
 		baselineDuration: 100 * time.Second, baselineInterval: 500 * time.Millisecond,
 	}
 }
@@ -103,7 +99,7 @@ func baseRunFlags(name string, defaults runDefaults) (*flag.FlagSet, *runOptions
 	fs.StringVar(&opts.resultsDir, "results-dir", "results", "Local results directory")
 	fs.IntVar(&opts.workMS, "work-ms", 2000, "Consumer processing time per message")
 	fs.IntVar(&opts.burstMessages, "burst", 5000, "Tenant A burst messages per scenario")
-	fs.IntVar(&opts.probeMessages, "probes", defaults.probeMessages, defaults.probeDescription)
+	fs.IntVar(&opts.probeMessages, "probes", defaults.probeMessages, "Quiet-tenant probe messages per scenario")
 	fs.DurationVar(&opts.probeInterval, "probe-interval", defaults.probeInterval, "Interval between B/C probes")
 	fs.DurationVar(&opts.queueSampleInterval, "queue-sample-interval", time.Second, "Interval between direct SQS queue-depth observations")
 	fs.DurationVar(&opts.baselineDuration, "baseline-duration", defaults.baselineDuration, "Duration of the pre-burst B/C baseline phase")
@@ -134,25 +130,11 @@ func parseLowOptions(args []string) (runOptions, error) {
 	if err := fs.Parse(args); err != nil {
 		return runOptions{}, err
 	}
-	switch opts.mode {
-	case "short":
-		if opts.probeMessages == 0 {
-			opts.probeMessages = 30
-		}
-	case "long":
-		if opts.probeMessages == 0 {
-			opts.probeMessages = 240
-		}
-	default:
-		return runOptions{}, fmt.Errorf("mode must be short or long")
-	}
 	return *opts, nil
 }
 
 func lowRunFlags() (*flag.FlagSet, *runOptions) {
-	fs, opts := baseRunFlags("run-low", lowRunDefaults())
-	fs.StringVar(&opts.mode, "mode", "short", "short observes early behavior at concurrency 20; long observes possible processing-time detection")
-	return fs, opts
+	return baseRunFlags("run-low", lowRunDefaults())
 }
 
 func executeRun(parent context.Context, opts runOptions, concurrency int, kind string) error {
@@ -278,7 +260,7 @@ func executeRun(parent context.Context, opts runOptions, concurrency int, kind s
 	}
 	sort.Strings(names)
 	manifest := experiment.Manifest{
-		ExperimentID: experimentID, Kind: kind, Mode: opts.mode, Scenarios: names,
+		ExperimentID: experimentID, Kind: kind, Scenarios: names,
 		StartedAt: startedAt.Format(time.RFC3339Nano), CompletedAt: time.Now().UTC().Format(time.RFC3339Nano),
 		RunStatus: "complete",
 		WorkMS:    opts.workMS, BurstMessages: opts.burstMessages, ProbeMessages: opts.probeMessages,
@@ -507,11 +489,19 @@ func collectCommand(args []string) error {
 	} else if !os.IsNotExist(err) {
 		return fmt.Errorf("read queue-depth samples: %w", err)
 	}
+	fairQueueConditionPath, err := experiment.WriteFairQueueConditionEvidence(*resultsDir, config, manifest, rows, queueSamples)
+	if err != nil {
+		return err
+	}
 	summaryPath, err := experiment.WriteSummary(*resultsDir, manifest, rows)
 	if err != nil {
 		return err
 	}
 	observationSummaryPath, err := experiment.WriteObservationSummary(*resultsDir, manifest, rows)
+	if err != nil {
+		return err
+	}
+	observationWindowSummaryPath, err := experiment.WriteObservationWindowSummary(*resultsDir, manifest, rows)
 	if err != nil {
 		return err
 	}
@@ -527,7 +517,7 @@ func collectCommand(args []string) error {
 	if err != nil {
 		return err
 	}
-	fmt.Printf("collected %d message starts\nevents: %s\nhandler-active estimate: %s\nhandler-active summary: %s\naligned queue-depth samples: %s\nconcurrency-share proxy: %s\nfull summary: %s\nobservation summary: %s\nrecovery estimate: %s\nmetrics: %s\n", len(rows), csvPath, handlerActivePath, handlerActiveSummaryPath, queueAlignedPath, shareProxyPath, summaryPath, observationSummaryPath, recoveryPath, metricsPath)
+	fmt.Printf("collected %d message starts\nevents: %s\nhandler-active estimate: %s\nhandler-active summary: %s\naligned queue-depth samples: %s\nconcurrency-share proxy: %s\nfair queue condition evidence: %s\nfull summary: %s\nobservation summary: %s\nobservation window summary: %s\nrecovery estimate: %s\nmetrics: %s\n", len(rows), csvPath, handlerActivePath, handlerActiveSummaryPath, queueAlignedPath, shareProxyPath, fairQueueConditionPath, summaryPath, observationSummaryPath, observationWindowSummaryPath, recoveryPath, metricsPath)
 	return nil
 }
 

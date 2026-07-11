@@ -145,6 +145,56 @@ func TestWriteObservationSummaryUsesSendTimeAndKeepsLateStarts(t *testing.T) {
 	}
 }
 
+func TestWriteObservationWindowSummaryBuilds200SecondBuckets(t *testing.T) {
+	dir := t.TempDir()
+	start := time.Unix(2000, 0).UTC()
+	manifest := Manifest{
+		ExperimentID: "exp", Scenarios: []string{"fair-c20"}, ObservationWindowMS: 600_000,
+		ProbeMessages: 6, ProbeIntervalMS: 100_000,
+		StartedAt: start.Format(time.RFC3339Nano),
+		ScenarioTimings: map[string]ScenarioTiming{
+			"fair-c20": {BurstStartedAt: start.Format(time.RFC3339Nano)},
+		},
+	}
+	if _, err := SaveManifest(dir, manifest); err != nil {
+		t.Fatal(err)
+	}
+	rows := []consumer.EventLog{
+		{Scenario: "fair-c20", Tenant: "B", Phase: "probe", Sequence: 0, SQSSentMS: start.Add(100 * time.Millisecond).UnixMilli(), DwellMS: 10},
+		// Scheduled at 200s (window 1) but sent at 405s: schedule-based
+		// bucketing must keep this row in window 1 despite the drift.
+		{Scenario: "fair-c20", Tenant: "B", Phase: "probe", Sequence: 2, SQSSentMS: start.Add(405 * time.Second).UnixMilli(), DwellMS: 20},
+		{Scenario: "fair-c20", Tenant: "B", Phase: "probe", Sequence: 4, SQSSentMS: start.Add(430 * time.Second).UnixMilli(), DwellMS: 30},
+		{Scenario: "fair-c20", Tenant: "C", Phase: "probe", Sequence: 5, SQSSentMS: start.Add(505 * time.Second).UnixMilli(), DwellMS: 40},
+	}
+	path, err := WriteObservationWindowSummary(dir, manifest, rows)
+	if err != nil {
+		t.Fatal(err)
+	}
+	data, err := os.ReadFile(path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	var summaries []ObservationWindowSummary
+	if err := json.Unmarshal(data, &summaries); err != nil {
+		t.Fatal(err)
+	}
+	if len(summaries) != 6 {
+		t.Fatalf("summary count=%d, want 6: %+v", len(summaries), summaries)
+	}
+	wantB := []int64{10, 20, 30}
+	for index, want := range wantB {
+		summary := summaries[index*2]
+		if summary.Tenant != "B" || summary.ObservedCount != 1 || summary.ExpectedCount != 1 || summary.CompletionRate != 1 ||
+			summary.Status != "complete" || summary.P95MS != want || summary.WindowStartMS != int64(index)*200_000 {
+			t.Fatalf("unexpected B window %d: %+v", index, summary)
+		}
+	}
+	if summary := summaries[1]; summary.Tenant != "C" || summary.Status != "incomplete" || summary.ExpectedCount != 1 || summary.ObservedCount != 0 {
+		t.Fatalf("unexpected incomplete C window: %+v", summary)
+	}
+}
+
 func TestWriteRecoveryEstimatesUsesBaselineAndFirstASentTimestamp(t *testing.T) {
 	dir := t.TempDir()
 	start := time.Unix(1000, 0).UTC()

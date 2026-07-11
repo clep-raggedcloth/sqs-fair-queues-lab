@@ -228,6 +228,20 @@ type Summary struct {
 	MaxMS    int64  `json:"max_dwell_ms"`
 }
 
+type ObservationWindowSummary struct {
+	Scenario       string  `json:"scenario"`
+	Tenant         string  `json:"tenant"`
+	WindowStartMS  int64   `json:"window_start_ms"`
+	WindowEndMS    int64   `json:"window_end_ms"`
+	ExpectedCount  int     `json:"expected_count"`
+	ObservedCount  int     `json:"observed_count"`
+	CompletionRate float64 `json:"completion_rate"`
+	P50MS          int64   `json:"p50_dwell_ms"`
+	P95MS          int64   `json:"p95_dwell_ms"`
+	MaxMS          int64   `json:"max_dwell_ms"`
+	Status         string  `json:"status"`
+}
+
 type RecoveryEstimate struct {
 	Scenario                  string           `json:"scenario"`
 	BurstStartedMS            int64            `json:"burst_started_ms"`
@@ -283,6 +297,96 @@ func WriteObservationSummary(resultsDir string, manifest Manifest, rows []consum
 		}
 	}
 	return writeSummary(filepath.Join(resultsDir, manifest.ExperimentID, "observation-summary.json"), filtered)
+}
+
+// WriteObservationWindowSummary buckets B/C probes by their scheduled send
+// offset (sequence × probe interval), not the actual SentTimestamp: real send
+// times drift past window boundaries through send latency or dropped ticker
+// ticks, which would misclassify boundary probes and mark otherwise-complete
+// windows incomplete. SentTimestamp bucketing remains only as a fallback for
+// manifests without a probe interval.
+func WriteObservationWindowSummary(resultsDir string, manifest Manifest, rows []consumer.EventLog) (string, error) {
+	const windowSizeMS int64 = 200_000
+	scheduleKnown := manifest.ProbeIntervalMS > 0
+	var summaries []ObservationWindowSummary
+	for _, scenario := range manifest.Scenarios {
+		var burstStartMS int64
+		if !scheduleKnown {
+			burstStart, _, err := burstStartForScenario(manifest, scenario, rows)
+			if err != nil {
+				return "", err
+			}
+			burstStartMS = burstStart.UnixMilli()
+		}
+		observationWindowMS := int64(manifest.ObservationWindowMS)
+		for windowStartMS := int64(0); windowStartMS < observationWindowMS; windowStartMS += windowSizeMS {
+			windowEndMS := min(windowStartMS+windowSizeMS, observationWindowMS)
+			for _, tenant := range []string{"B", "C"} {
+				values := make([]int64, 0)
+				for _, row := range rows {
+					if row.Scenario != scenario || row.Phase != "probe" || row.Tenant != tenant {
+						continue
+					}
+					elapsedMS := row.SQSSentMS - burstStartMS
+					if scheduleKnown {
+						elapsedMS = int64(row.Sequence * manifest.ProbeIntervalMS)
+					}
+					if elapsedMS >= windowStartMS && elapsedMS < windowEndMS {
+						values = append(values, row.DwellMS)
+					}
+				}
+				expectedCount, expectedKnown := expectedProbeCount(manifest, tenant, windowStartMS, windowEndMS)
+				summary := ObservationWindowSummary{
+					Scenario: scenario, Tenant: tenant, WindowStartMS: windowStartMS, WindowEndMS: windowEndMS,
+					ExpectedCount: expectedCount, ObservedCount: len(values), Status: "unknown_expected_count",
+				}
+				if expectedKnown && expectedCount > 0 {
+					summary.CompletionRate = float64(len(values)) / float64(expectedCount)
+					switch {
+					case len(values) == expectedCount:
+						summary.Status = "complete"
+					case len(values) < expectedCount:
+						summary.Status = "incomplete"
+					default:
+						summary.Status = "unexpected_extra_events"
+					}
+				} else if expectedKnown {
+					summary.Status = "no_expected_probes"
+				}
+				if len(values) > 0 {
+					sort.Slice(values, func(i, j int) bool { return values[i] < values[j] })
+					summary.P50MS = percentile(values, 0.50)
+					summary.P95MS = percentile(values, 0.95)
+					summary.MaxMS = values[len(values)-1]
+				}
+				summaries = append(summaries, summary)
+			}
+		}
+	}
+	path := filepath.Join(resultsDir, manifest.ExperimentID, "observation-window-summary.json")
+	data, err := json.MarshalIndent(summaries, "", "  ")
+	if err != nil {
+		return "", err
+	}
+	return path, os.WriteFile(path, append(data, '\n'), 0o644)
+}
+
+func expectedProbeCount(manifest Manifest, tenant string, windowStartMS, windowEndMS int64) (int, bool) {
+	if manifest.ProbeMessages < 0 || manifest.ProbeIntervalMS <= 0 {
+		return 0, false
+	}
+	count := 0
+	for sequence := 0; sequence < manifest.ProbeMessages; sequence++ {
+		sequenceTenant := "B"
+		if sequence%2 == 1 {
+			sequenceTenant = "C"
+		}
+		elapsedMS := int64(sequence * manifest.ProbeIntervalMS)
+		if sequenceTenant == tenant && elapsedMS >= windowStartMS && elapsedMS < windowEndMS {
+			count++
+		}
+	}
+	return count, true
 }
 
 func writeSummary(path string, rows []consumer.EventLog) (string, error) {

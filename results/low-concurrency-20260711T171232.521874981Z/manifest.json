@@ -1,0 +1,32 @@
+{
+  "experiment_id": "low-concurrency-20260711T171232.521874981Z",
+  "kind": "low-concurrency",
+  "run_status": "complete",
+  "scenarios": [
+    "baseline-c20",
+    "fair-c20"
+  ],
+  "started_at": "2026-07-11T17:12:32.521878639Z",
+  "completed_at": "2026-07-11T17:27:05.933516776Z",
+  "work_ms": 2000,
+  "burst_messages_per_scenario": 5000,
+  "probe_messages_per_scenario": 1200,
+  "probe_interval_ms": 500,
+  "queue_sample_interval_ms": 1000,
+  "queue_sample_count": 1520,
+  "queue_sample_error_count": 0,
+  "observation_window_ms": 600000,
+  "warmup_messages_per_scenario": 200,
+  "baseline_duration_ms": 100000,
+  "baseline_interval_ms": 500,
+  "baseline_messages_per_scenario": 200,
+  "maximum_concurrency": 20,
+  "scenario_timings": {
+    "baseline-c20": {
+      "burst_started_at": "2026-07-11T17:14:26.301850016Z"
+    },
+    "fair-c20": {
+      "burst_started_at": "2026-07-11T17:14:26.153695694Z"
+    }
+  }
+}

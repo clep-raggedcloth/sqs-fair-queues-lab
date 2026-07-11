@@ -12,67 +12,99 @@
     "points": [
       {
         "timestamp": "2026-07-11T15:45:00Z",
-        "value": 0
+        "value": 0,
+        "phase": "baseline",
+        "elapsed_ms": -103610
       },
       {
         "timestamp": "2026-07-11T15:46:00Z",
-        "value": 0
+        "value": 0,
+        "phase": "boundary_overlap",
+        "elapsed_ms": -43610
       },
       {
         "timestamp": "2026-07-11T15:47:00Z",
-        "value": 0
+        "value": 0,
+        "phase": "measurement",
+        "elapsed_ms": 16390
       },
       {
         "timestamp": "2026-07-11T15:48:00Z",
-        "value": 0
+        "value": 0,
+        "phase": "measurement",
+        "elapsed_ms": 76390
       },
       {
         "timestamp": "2026-07-11T15:49:00Z",
-        "value": 0
+        "value": 0,
+        "phase": "measurement",
+        "elapsed_ms": 136390
       },
       {
         "timestamp": "2026-07-11T15:50:00Z",
-        "value": 0
+        "value": 0,
+        "phase": "measurement",
+        "elapsed_ms": 196390
       },
       {
         "timestamp": "2026-07-11T15:51:00Z",
-        "value": 0
+        "value": 0,
+        "phase": "measurement",
+        "elapsed_ms": 256390
       },
       {
         "timestamp": "2026-07-11T15:52:00Z",
-        "value": 0
+        "value": 0,
+        "phase": "measurement",
+        "elapsed_ms": 316390
       },
       {
         "timestamp": "2026-07-11T15:53:00Z",
-        "value": 0
+        "value": 0,
+        "phase": "measurement",
+        "elapsed_ms": 376390
       },
       {
         "timestamp": "2026-07-11T15:54:00Z",
-        "value": 0
+        "value": 0,
+        "phase": "measurement",
+        "elapsed_ms": 436390
       },
       {
         "timestamp": "2026-07-11T15:55:00Z",
-        "value": 0
+        "value": 0,
+        "phase": "measurement",
+        "elapsed_ms": 496390
       },
       {
         "timestamp": "2026-07-11T15:56:00Z",
-        "value": 0
+        "value": 0,
+        "phase": "boundary_overlap",
+        "elapsed_ms": 556390
       },
       {
         "timestamp": "2026-07-11T15:57:00Z",
-        "value": 0
+        "value": 0,
+        "phase": "drain",
+        "elapsed_ms": 616390
       },
       {
         "timestamp": "2026-07-11T15:58:00Z",
-        "value": 0
+        "value": 0,
+        "phase": "drain",
+        "elapsed_ms": 676390
       },
       {
         "timestamp": "2026-07-11T15:59:00Z",
-        "value": 0
+        "value": 0,
+        "phase": "drain",
+        "elapsed_ms": 736390
       },
       {
         "timestamp": "2026-07-11T16:00:00Z",
-        "value": 0
+        "value": 0,
+        "phase": "drain",
+        "elapsed_ms": 796390
       }
     ]
   },
@@ -89,67 +121,99 @@
     "points": [
       {
         "timestamp": "2026-07-11T15:45:00Z",
-        "value": 0
+        "value": 0,
+        "phase": "baseline",
+        "elapsed_ms": -103610
       },
       {
         "timestamp": "2026-07-11T15:46:00Z",
-        "value": 16
+        "value": 16,
+        "phase": "boundary_overlap",
+        "elapsed_ms": -43610
       },
       {
         "timestamp": "2026-07-11T15:47:00Z",
-        "value": 91
+        "value": 91,
+        "phase": "measurement",
+        "elapsed_ms": 16390
       },
       {
         "timestamp": "2026-07-11T15:48:00Z",
-        "value": 87
+        "value": 87,
+        "phase": "measurement",
+        "elapsed_ms": 76390
       },
       {
         "timestamp": "2026-07-11T15:49:00Z",
-        "value": 75
+        "value": 75,
+        "phase": "measurement",
+        "elapsed_ms": 136390
       },
       {
         "timestamp": "2026-07-11T15:50:00Z",
-        "value": 92
+        "value": 92,
+        "phase": "measurement",
+        "elapsed_ms": 196390
       },
       {
         "timestamp": "2026-07-11T15:51:00Z",
-        "value": 87
+        "value": 87,
+        "phase": "measurement",
+        "elapsed_ms": 256390
       },
       {
         "timestamp": "2026-07-11T15:52:00Z",
-        "value": 92
+        "value": 92,
+        "phase": "measurement",
+        "elapsed_ms": 316390
       },
       {
         "timestamp": "2026-07-11T15:53:00Z",
-        "value": 68
+        "value": 68,
+        "phase": "measurement",
+        "elapsed_ms": 376390
       },
       {
         "timestamp": "2026-07-11T15:54:00Z",
-        "value": 91
+        "value": 91,
+        "phase": "measurement",
+        "elapsed_ms": 436390
       },
       {
         "timestamp": "2026-07-11T15:55:00Z",
-        "value": 98
+        "value": 98,
+        "phase": "measurement",
+        "elapsed_ms": 496390
       },
       {
         "timestamp": "2026-07-11T15:56:00Z",
-        "value": 92
+        "value": 92,
+        "phase": "boundary_overlap",
+        "elapsed_ms": 556390
       },
       {
         "timestamp": "2026-07-11T15:57:00Z",
-        "value": 97
+        "value": 97,
+        "phase": "drain",
+        "elapsed_ms": 616390
       },
       {
         "timestamp": "2026-07-11T15:58:00Z",
-        "value": 88
+        "value": 88,
+        "phase": "drain",
+        "elapsed_ms": 676390
       },
       {
         "timestamp": "2026-07-11T15:59:00Z",
-        "value": 95
+        "value": 95,
+        "phase": "drain",
+        "elapsed_ms": 736390
       },
       {
         "timestamp": "2026-07-11T16:00:00Z",
-        "value": 99
+        "value": 99,
+        "phase": "drain",
+        "elapsed_ms": 796390
       }
     ]
   },
@@ -166,67 +230,99 @@
     "points": [
       {
         "timestamp": "2026-07-11T15:45:00Z",
-        "value": 0
+        "value": 0,
+        "phase": "baseline",
+        "elapsed_ms": -103610
       },
       {
         "timestamp": "2026-07-11T15:46:00Z",
-        "value": 16
+        "value": 16,
+        "phase": "boundary_overlap",
+        "elapsed_ms": -43610
       },
       {
         "timestamp": "2026-07-11T15:47:00Z",
-        "value": 91
+        "value": 91,
+        "phase": "measurement",
+        "elapsed_ms": 16390
       },
       {
         "timestamp": "2026-07-11T15:48:00Z",
-        "value": 87
+        "value": 87,
+        "phase": "measurement",
+        "elapsed_ms": 76390
       },
       {
         "timestamp": "2026-07-11T15:49:00Z",
-        "value": 75
+        "value": 75,
+        "phase": "measurement",
+        "elapsed_ms": 136390
       },
       {
         "timestamp": "2026-07-11T15:50:00Z",
-        "value": 92
+        "value": 92,
+        "phase": "measurement",
+        "elapsed_ms": 196390
       },
       {
         "timestamp": "2026-07-11T15:51:00Z",
-        "value": 87
+        "value": 87,
+        "phase": "measurement",
+        "elapsed_ms": 256390
       },
       {
         "timestamp": "2026-07-11T15:52:00Z",
-        "value": 92
+        "value": 92,
+        "phase": "measurement",
+        "elapsed_ms": 316390
       },
       {
         "timestamp": "2026-07-11T15:53:00Z",
-        "value": 68
+        "value": 68,
+        "phase": "measurement",
+        "elapsed_ms": 376390
       },
       {
         "timestamp": "2026-07-11T15:54:00Z",
-        "value": 91
+        "value": 91,
+        "phase": "measurement",
+        "elapsed_ms": 436390
       },
       {
         "timestamp": "2026-07-11T15:55:00Z",
-        "value": 98
+        "value": 98,
+        "phase": "measurement",
+        "elapsed_ms": 496390
       },
       {
         "timestamp": "2026-07-11T15:56:00Z",
-        "value": 92
+        "value": 92,
+        "phase": "boundary_overlap",
+        "elapsed_ms": 556390
       },
       {
         "timestamp": "2026-07-11T15:57:00Z",
-        "value": 97
+        "value": 97,
+        "phase": "drain",
+        "elapsed_ms": 616390
       },
       {
         "timestamp": "2026-07-11T15:58:00Z",
-        "value": 88
+        "value": 88,
+        "phase": "drain",
+        "elapsed_ms": 676390
       },
       {
         "timestamp": "2026-07-11T15:59:00Z",
-        "value": 95
+        "value": 95,
+        "phase": "drain",
+        "elapsed_ms": 736390
       },
       {
         "timestamp": "2026-07-11T16:00:00Z",
-        "value": 99
+        "value": 99,
+        "phase": "drain",
+        "elapsed_ms": 796390
       }
     ]
   },
@@ -243,67 +339,99 @@
     "points": [
       {
         "timestamp": "2026-07-11T15:45:00Z",
-        "value": 22
+        "value": 22,
+        "phase": "baseline",
+        "elapsed_ms": -103610
       },
       {
         "timestamp": "2026-07-11T15:46:00Z",
-        "value": 100
+        "value": 100,
+        "phase": "boundary_overlap",
+        "elapsed_ms": -43610
       },
       {
         "timestamp": "2026-07-11T15:47:00Z",
-        "value": 100
+        "value": 100,
+        "phase": "measurement",
+        "elapsed_ms": 16390
       },
       {
         "timestamp": "2026-07-11T15:48:00Z",
-        "value": 100
+        "value": 100,
+        "phase": "measurement",
+        "elapsed_ms": 76390
       },
       {
         "timestamp": "2026-07-11T15:49:00Z",
-        "value": 100
+        "value": 100,
+        "phase": "measurement",
+        "elapsed_ms": 136390
       },
       {
         "timestamp": "2026-07-11T15:50:00Z",
-        "value": 100
+        "value": 100,
+        "phase": "measurement",
+        "elapsed_ms": 196390
       },
       {
         "timestamp": "2026-07-11T15:51:00Z",
-        "value": 100
+        "value": 100,
+        "phase": "measurement",
+        "elapsed_ms": 256390
       },
       {
         "timestamp": "2026-07-11T15:52:00Z",
-        "value": 100
+        "value": 100,
+        "phase": "measurement",
+        "elapsed_ms": 316390
       },
       {
         "timestamp": "2026-07-11T15:53:00Z",
-        "value": 100
+        "value": 100,
+        "phase": "measurement",
+        "elapsed_ms": 376390
       },
       {
         "timestamp": "2026-07-11T15:54:00Z",
-        "value": 100
+        "value": 100,
+        "phase": "measurement",
+        "elapsed_ms": 436390
       },
       {
         "timestamp": "2026-07-11T15:55:00Z",
-        "value": 100
+        "value": 100,
+        "phase": "measurement",
+        "elapsed_ms": 496390
       },
       {
         "timestamp": "2026-07-11T15:56:00Z",
-        "value": 100
+        "value": 100,
+        "phase": "boundary_overlap",
+        "elapsed_ms": 556390
       },
       {
         "timestamp": "2026-07-11T15:57:00Z",
-        "value": 100
+        "value": 100,
+        "phase": "drain",
+        "elapsed_ms": 616390
       },
       {
         "timestamp": "2026-07-11T15:58:00Z",
-        "value": 100
+        "value": 100,
+        "phase": "drain",
+        "elapsed_ms": 676390
       },
       {
         "timestamp": "2026-07-11T15:59:00Z",
-        "value": 100
+        "value": 100,
+        "phase": "drain",
+        "elapsed_ms": 736390
       },
       {
         "timestamp": "2026-07-11T16:00:00Z",
-        "value": 100
+        "value": 100,
+        "phase": "drain",
+        "elapsed_ms": 796390
       }
     ]
   },
@@ -320,67 +448,99 @@
     "points": [
       {
         "timestamp": "2026-07-11T15:45:00Z",
-        "value": 0
+        "value": 0,
+        "phase": "baseline",
+        "elapsed_ms": -103610
       },
       {
         "timestamp": "2026-07-11T15:46:00Z",
-        "value": 0
+        "value": 0,
+        "phase": "boundary_overlap",
+        "elapsed_ms": -43610
       },
       {
         "timestamp": "2026-07-11T15:47:00Z",
-        "value": 1
+        "value": 1,
+        "phase": "measurement",
+        "elapsed_ms": 16390
       },
       {
         "timestamp": "2026-07-11T15:48:00Z",
-        "value": 1
+        "value": 1,
+        "phase": "measurement",
+        "elapsed_ms": 76390
       },
       {
         "timestamp": "2026-07-11T15:49:00Z",
-        "value": 3
+        "value": 3,
+        "phase": "measurement",
+        "elapsed_ms": 136390
       },
       {
         "timestamp": "2026-07-11T15:50:00Z",
-        "value": 1
+        "value": 1,
+        "phase": "measurement",
+        "elapsed_ms": 196390
       },
       {
         "timestamp": "2026-07-11T15:51:00Z",
-        "value": 2
+        "value": 2,
+        "phase": "measurement",
+        "elapsed_ms": 256390
       },
       {
         "timestamp": "2026-07-11T15:52:00Z",
-        "value": 1
+        "value": 1,
+        "phase": "measurement",
+        "elapsed_ms": 316390
       },
       {
         "timestamp": "2026-07-11T15:53:00Z",
-        "value": 1
+        "value": 1,
+        "phase": "measurement",
+        "elapsed_ms": 376390
       },
       {
         "timestamp": "2026-07-11T15:54:00Z",
-        "value": 1
+        "value": 1,
+        "phase": "measurement",
+        "elapsed_ms": 436390
       },
       {
         "timestamp": "2026-07-11T15:55:00Z",
-        "value": 1
+        "value": 1,
+        "phase": "measurement",
+        "elapsed_ms": 496390
       },
       {
         "timestamp": "2026-07-11T15:56:00Z",
-        "value": 1
+        "value": 1,
+        "phase": "boundary_overlap",
+        "elapsed_ms": 556390
       },
       {
         "timestamp": "2026-07-11T15:57:00Z",
-        "value": 1
+        "value": 1,
+        "phase": "drain",
+        "elapsed_ms": 616390
       },
       {
         "timestamp": "2026-07-11T15:58:00Z",
-        "value": 1
+        "value": 1,
+        "phase": "drain",
+        "elapsed_ms": 676390
       },
       {
         "timestamp": "2026-07-11T15:59:00Z",
-        "value": 1
+        "value": 1,
+        "phase": "drain",
+        "elapsed_ms": 736390
       },
       {
         "timestamp": "2026-07-11T16:00:00Z",
-        "value": 1
+        "value": 1,
+        "phase": "drain",
+        "elapsed_ms": 796390
       }
     ]
   },
@@ -397,67 +557,99 @@
     "points": [
       {
         "timestamp": "2026-07-11T15:45:00Z",
-        "value": 0
+        "value": 0,
+        "phase": "baseline",
+        "elapsed_ms": -103610
       },
       {
         "timestamp": "2026-07-11T15:46:00Z",
-        "value": 0
+        "value": 0,
+        "phase": "boundary_overlap",
+        "elapsed_ms": -43610
       },
       {
         "timestamp": "2026-07-11T15:47:00Z",
-        "value": 104
+        "value": 104,
+        "phase": "measurement",
+        "elapsed_ms": 16390
       },
       {
         "timestamp": "2026-07-11T15:48:00Z",
-        "value": 87
+        "value": 87,
+        "phase": "measurement",
+        "elapsed_ms": 76390
       },
       {
         "timestamp": "2026-07-11T15:49:00Z",
-        "value": 97
+        "value": 97,
+        "phase": "measurement",
+        "elapsed_ms": 136390
       },
       {
         "timestamp": "2026-07-11T15:50:00Z",
-        "value": 105
+        "value": 105,
+        "phase": "measurement",
+        "elapsed_ms": 196390
       },
       {
         "timestamp": "2026-07-11T15:51:00Z",
-        "value": 101
+        "value": 101,
+        "phase": "measurement",
+        "elapsed_ms": 256390
       },
       {
         "timestamp": "2026-07-11T15:52:00Z",
-        "value": 83
+        "value": 83,
+        "phase": "measurement",
+        "elapsed_ms": 316390
       },
       {
         "timestamp": "2026-07-11T15:53:00Z",
-        "value": 92
+        "value": 92,
+        "phase": "measurement",
+        "elapsed_ms": 376390
       },
       {
         "timestamp": "2026-07-11T15:54:00Z",
-        "value": 102
+        "value": 102,
+        "phase": "measurement",
+        "elapsed_ms": 436390
       },
       {
         "timestamp": "2026-07-11T15:55:00Z",
-        "value": 90
+        "value": 90,
+        "phase": "measurement",
+        "elapsed_ms": 496390
       },
       {
         "timestamp": "2026-07-11T15:56:00Z",
-        "value": 76
+        "value": 76,
+        "phase": "boundary_overlap",
+        "elapsed_ms": 556390
       },
       {
         "timestamp": "2026-07-11T15:57:00Z",
-        "value": 95
+        "value": 95,
+        "phase": "drain",
+        "elapsed_ms": 616390
       },
       {
         "timestamp": "2026-07-11T15:58:00Z",
-        "value": 90
+        "value": 90,
+        "phase": "drain",
+        "elapsed_ms": 676390
       },
       {
         "timestamp": "2026-07-11T15:59:00Z",
-        "value": 95
+        "value": 95,
+        "phase": "drain",
+        "elapsed_ms": 736390
       },
       {
         "timestamp": "2026-07-11T16:00:00Z",
-        "value": 85
+        "value": 85,
+        "phase": "drain",
+        "elapsed_ms": 796390
       }
     ]
   },
@@ -474,67 +666,99 @@
     "points": [
       {
         "timestamp": "2026-07-11T15:45:00Z",
-        "value": 0
+        "value": 0,
+        "phase": "baseline",
+        "elapsed_ms": -103610
       },
       {
         "timestamp": "2026-07-11T15:46:00Z",
-        "value": 0
+        "value": 0,
+        "phase": "boundary_overlap",
+        "elapsed_ms": -43610
       },
       {
         "timestamp": "2026-07-11T15:47:00Z",
-        "value": 89
+        "value": 89,
+        "phase": "measurement",
+        "elapsed_ms": 16390
       },
       {
         "timestamp": "2026-07-11T15:48:00Z",
-        "value": 71
+        "value": 71,
+        "phase": "measurement",
+        "elapsed_ms": 76390
       },
       {
         "timestamp": "2026-07-11T15:49:00Z",
-        "value": 82
+        "value": 82,
+        "phase": "measurement",
+        "elapsed_ms": 136390
       },
       {
         "timestamp": "2026-07-11T15:50:00Z",
-        "value": 74
+        "value": 74,
+        "phase": "measurement",
+        "elapsed_ms": 196390
       },
       {
         "timestamp": "2026-07-11T15:51:00Z",
-        "value": 55
+        "value": 55,
+        "phase": "measurement",
+        "elapsed_ms": 256390
       },
       {
         "timestamp": "2026-07-11T15:52:00Z",
-        "value": 19
+        "value": 19,
+        "phase": "measurement",
+        "elapsed_ms": 316390
       },
       {
         "timestamp": "2026-07-11T15:53:00Z",
-        "value": 22
+        "value": 22,
+        "phase": "measurement",
+        "elapsed_ms": 376390
       },
       {
         "timestamp": "2026-07-11T15:54:00Z",
-        "value": 23
+        "value": 23,
+        "phase": "measurement",
+        "elapsed_ms": 436390
       },
       {
         "timestamp": "2026-07-11T15:55:00Z",
-        "value": 24
+        "value": 24,
+        "phase": "measurement",
+        "elapsed_ms": 496390
       },
       {
         "timestamp": "2026-07-11T15:56:00Z",
-        "value": 19
+        "value": 19,
+        "phase": "boundary_overlap",
+        "elapsed_ms": 556390
       },
       {
         "timestamp": "2026-07-11T15:57:00Z",
-        "value": 0
+        "value": 0,
+        "phase": "drain",
+        "elapsed_ms": 616390
       },
       {
         "timestamp": "2026-07-11T15:58:00Z",
-        "value": 0
+        "value": 0,
+        "phase": "drain",
+        "elapsed_ms": 676390
       },
       {
         "timestamp": "2026-07-11T15:59:00Z",
-        "value": 0
+        "value": 0,
+        "phase": "drain",
+        "elapsed_ms": 736390
       },
       {
         "timestamp": "2026-07-11T16:00:00Z",
-        "value": 0
+        "value": 0,
+        "phase": "drain",
+        "elapsed_ms": 796390
       }
     ]
   },
@@ -551,67 +775,99 @@
     "points": [
       {
         "timestamp": "2026-07-11T15:45:00Z",
-        "value": 26
+        "value": 26,
+        "phase": "baseline",
+        "elapsed_ms": -103610
       },
       {
         "timestamp": "2026-07-11T15:46:00Z",
-        "value": 98
+        "value": 98,
+        "phase": "boundary_overlap",
+        "elapsed_ms": -43610
       },
       {
         "timestamp": "2026-07-11T15:47:00Z",
-        "value": 100
+        "value": 100,
+        "phase": "measurement",
+        "elapsed_ms": 16390
       },
       {
         "timestamp": "2026-07-11T15:48:00Z",
-        "value": 100
+        "value": 100,
+        "phase": "measurement",
+        "elapsed_ms": 76390
       },
       {
         "timestamp": "2026-07-11T15:49:00Z",
-        "value": 100
+        "value": 100,
+        "phase": "measurement",
+        "elapsed_ms": 136390
       },
       {
         "timestamp": "2026-07-11T15:50:00Z",
-        "value": 100
+        "value": 100,
+        "phase": "measurement",
+        "elapsed_ms": 196390
       },
       {
         "timestamp": "2026-07-11T15:51:00Z",
-        "value": 100
+        "value": 100,
+        "phase": "measurement",
+        "elapsed_ms": 256390
       },
       {
         "timestamp": "2026-07-11T15:52:00Z",
-        "value": 100
+        "value": 100,
+        "phase": "measurement",
+        "elapsed_ms": 316390
       },
       {
         "timestamp": "2026-07-11T15:53:00Z",
-        "value": 100
+        "value": 100,
+        "phase": "measurement",
+        "elapsed_ms": 376390
       },
       {
         "timestamp": "2026-07-11T15:54:00Z",
-        "value": 100
+        "value": 100,
+        "phase": "measurement",
+        "elapsed_ms": 436390
       },
       {
         "timestamp": "2026-07-11T15:55:00Z",
-        "value": 100
+        "value": 100,
+        "phase": "measurement",
+        "elapsed_ms": 496390
       },
       {
         "timestamp": "2026-07-11T15:56:00Z",
-        "value": 100
+        "value": 100,
+        "phase": "boundary_overlap",
+        "elapsed_ms": 556390
       },
       {
         "timestamp": "2026-07-11T15:57:00Z",
-        "value": 100
+        "value": 100,
+        "phase": "drain",
+        "elapsed_ms": 616390
       },
       {
         "timestamp": "2026-07-11T15:58:00Z",
-        "value": 100
+        "value": 100,
+        "phase": "drain",
+        "elapsed_ms": 676390
       },
       {
         "timestamp": "2026-07-11T15:59:00Z",
-        "value": 100
+        "value": 100,
+        "phase": "drain",
+        "elapsed_ms": 736390
       },
       {
         "timestamp": "2026-07-11T16:00:00Z",
-        "value": 100
+        "value": 100,
+        "phase": "drain",
+        "elapsed_ms": 796390
       }
     ]
   }

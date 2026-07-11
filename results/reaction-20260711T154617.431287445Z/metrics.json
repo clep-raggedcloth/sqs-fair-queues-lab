@@ -1,0 +1,618 @@
+[
+  {
+    "scenario": "baseline-c100",
+    "namespace": "AWS/SQS",
+    "metric_name": "ApproximateNumberOfNoisyGroups",
+    "statistic": "Maximum",
+    "period_seconds": 60,
+    "dimensions": {
+      "QueueName": "sqs-fair-queue-lt-baseline-c100"
+    },
+    "status": "Complete",
+    "points": [
+      {
+        "timestamp": "2026-07-11T15:45:00Z",
+        "value": 0
+      },
+      {
+        "timestamp": "2026-07-11T15:46:00Z",
+        "value": 0
+      },
+      {
+        "timestamp": "2026-07-11T15:47:00Z",
+        "value": 0
+      },
+      {
+        "timestamp": "2026-07-11T15:48:00Z",
+        "value": 0
+      },
+      {
+        "timestamp": "2026-07-11T15:49:00Z",
+        "value": 0
+      },
+      {
+        "timestamp": "2026-07-11T15:50:00Z",
+        "value": 0
+      },
+      {
+        "timestamp": "2026-07-11T15:51:00Z",
+        "value": 0
+      },
+      {
+        "timestamp": "2026-07-11T15:52:00Z",
+        "value": 0
+      },
+      {
+        "timestamp": "2026-07-11T15:53:00Z",
+        "value": 0
+      },
+      {
+        "timestamp": "2026-07-11T15:54:00Z",
+        "value": 0
+      },
+      {
+        "timestamp": "2026-07-11T15:55:00Z",
+        "value": 0
+      },
+      {
+        "timestamp": "2026-07-11T15:56:00Z",
+        "value": 0
+      },
+      {
+        "timestamp": "2026-07-11T15:57:00Z",
+        "value": 0
+      },
+      {
+        "timestamp": "2026-07-11T15:58:00Z",
+        "value": 0
+      },
+      {
+        "timestamp": "2026-07-11T15:59:00Z",
+        "value": 0
+      },
+      {
+        "timestamp": "2026-07-11T16:00:00Z",
+        "value": 0
+      }
+    ]
+  },
+  {
+    "scenario": "baseline-c100",
+    "namespace": "AWS/SQS",
+    "metric_name": "ApproximateNumberOfMessagesNotVisible",
+    "statistic": "Maximum",
+    "period_seconds": 60,
+    "dimensions": {
+      "QueueName": "sqs-fair-queue-lt-baseline-c100"
+    },
+    "status": "Complete",
+    "points": [
+      {
+        "timestamp": "2026-07-11T15:45:00Z",
+        "value": 0
+      },
+      {
+        "timestamp": "2026-07-11T15:46:00Z",
+        "value": 16
+      },
+      {
+        "timestamp": "2026-07-11T15:47:00Z",
+        "value": 91
+      },
+      {
+        "timestamp": "2026-07-11T15:48:00Z",
+        "value": 87
+      },
+      {
+        "timestamp": "2026-07-11T15:49:00Z",
+        "value": 75
+      },
+      {
+        "timestamp": "2026-07-11T15:50:00Z",
+        "value": 92
+      },
+      {
+        "timestamp": "2026-07-11T15:51:00Z",
+        "value": 87
+      },
+      {
+        "timestamp": "2026-07-11T15:52:00Z",
+        "value": 92
+      },
+      {
+        "timestamp": "2026-07-11T15:53:00Z",
+        "value": 68
+      },
+      {
+        "timestamp": "2026-07-11T15:54:00Z",
+        "value": 91
+      },
+      {
+        "timestamp": "2026-07-11T15:55:00Z",
+        "value": 98
+      },
+      {
+        "timestamp": "2026-07-11T15:56:00Z",
+        "value": 92
+      },
+      {
+        "timestamp": "2026-07-11T15:57:00Z",
+        "value": 97
+      },
+      {
+        "timestamp": "2026-07-11T15:58:00Z",
+        "value": 88
+      },
+      {
+        "timestamp": "2026-07-11T15:59:00Z",
+        "value": 95
+      },
+      {
+        "timestamp": "2026-07-11T16:00:00Z",
+        "value": 99
+      }
+    ]
+  },
+  {
+    "scenario": "baseline-c100",
+    "namespace": "AWS/SQS",
+    "metric_name": "ApproximateNumberOfMessagesNotVisibleInQuietGroups",
+    "statistic": "Maximum",
+    "period_seconds": 60,
+    "dimensions": {
+      "QueueName": "sqs-fair-queue-lt-baseline-c100"
+    },
+    "status": "Complete",
+    "points": [
+      {
+        "timestamp": "2026-07-11T15:45:00Z",
+        "value": 0
+      },
+      {
+        "timestamp": "2026-07-11T15:46:00Z",
+        "value": 16
+      },
+      {
+        "timestamp": "2026-07-11T15:47:00Z",
+        "value": 91
+      },
+      {
+        "timestamp": "2026-07-11T15:48:00Z",
+        "value": 87
+      },
+      {
+        "timestamp": "2026-07-11T15:49:00Z",
+        "value": 75
+      },
+      {
+        "timestamp": "2026-07-11T15:50:00Z",
+        "value": 92
+      },
+      {
+        "timestamp": "2026-07-11T15:51:00Z",
+        "value": 87
+      },
+      {
+        "timestamp": "2026-07-11T15:52:00Z",
+        "value": 92
+      },
+      {
+        "timestamp": "2026-07-11T15:53:00Z",
+        "value": 68
+      },
+      {
+        "timestamp": "2026-07-11T15:54:00Z",
+        "value": 91
+      },
+      {
+        "timestamp": "2026-07-11T15:55:00Z",
+        "value": 98
+      },
+      {
+        "timestamp": "2026-07-11T15:56:00Z",
+        "value": 92
+      },
+      {
+        "timestamp": "2026-07-11T15:57:00Z",
+        "value": 97
+      },
+      {
+        "timestamp": "2026-07-11T15:58:00Z",
+        "value": 88
+      },
+      {
+        "timestamp": "2026-07-11T15:59:00Z",
+        "value": 95
+      },
+      {
+        "timestamp": "2026-07-11T16:00:00Z",
+        "value": 99
+      }
+    ]
+  },
+  {
+    "scenario": "baseline-c100",
+    "namespace": "AWS/Lambda",
+    "metric_name": "ConcurrentExecutions",
+    "statistic": "Maximum",
+    "period_seconds": 60,
+    "dimensions": {
+      "FunctionName": "sqs-fair-queue-lt-baseline-c100-consumer"
+    },
+    "status": "Complete",
+    "points": [
+      {
+        "timestamp": "2026-07-11T15:45:00Z",
+        "value": 22
+      },
+      {
+        "timestamp": "2026-07-11T15:46:00Z",
+        "value": 100
+      },
+      {
+        "timestamp": "2026-07-11T15:47:00Z",
+        "value": 100
+      },
+      {
+        "timestamp": "2026-07-11T15:48:00Z",
+        "value": 100
+      },
+      {
+        "timestamp": "2026-07-11T15:49:00Z",
+        "value": 100
+      },
+      {
+        "timestamp": "2026-07-11T15:50:00Z",
+        "value": 100
+      },
+      {
+        "timestamp": "2026-07-11T15:51:00Z",
+        "value": 100
+      },
+      {
+        "timestamp": "2026-07-11T15:52:00Z",
+        "value": 100
+      },
+      {
+        "timestamp": "2026-07-11T15:53:00Z",
+        "value": 100
+      },
+      {
+        "timestamp": "2026-07-11T15:54:00Z",
+        "value": 100
+      },
+      {
+        "timestamp": "2026-07-11T15:55:00Z",
+        "value": 100
+      },
+      {
+        "timestamp": "2026-07-11T15:56:00Z",
+        "value": 100
+      },
+      {
+        "timestamp": "2026-07-11T15:57:00Z",
+        "value": 100
+      },
+      {
+        "timestamp": "2026-07-11T15:58:00Z",
+        "value": 100
+      },
+      {
+        "timestamp": "2026-07-11T15:59:00Z",
+        "value": 100
+      },
+      {
+        "timestamp": "2026-07-11T16:00:00Z",
+        "value": 100
+      }
+    ]
+  },
+  {
+    "scenario": "fair-c100",
+    "namespace": "AWS/SQS",
+    "metric_name": "ApproximateNumberOfNoisyGroups",
+    "statistic": "Maximum",
+    "period_seconds": 60,
+    "dimensions": {
+      "QueueName": "sqs-fair-queue-lt-fair-c100"
+    },
+    "status": "Complete",
+    "points": [
+      {
+        "timestamp": "2026-07-11T15:45:00Z",
+        "value": 0
+      },
+      {
+        "timestamp": "2026-07-11T15:46:00Z",
+        "value": 0
+      },
+      {
+        "timestamp": "2026-07-11T15:47:00Z",
+        "value": 1
+      },
+      {
+        "timestamp": "2026-07-11T15:48:00Z",
+        "value": 1
+      },
+      {
+        "timestamp": "2026-07-11T15:49:00Z",
+        "value": 3
+      },
+      {
+        "timestamp": "2026-07-11T15:50:00Z",
+        "value": 1
+      },
+      {
+        "timestamp": "2026-07-11T15:51:00Z",
+        "value": 2
+      },
+      {
+        "timestamp": "2026-07-11T15:52:00Z",
+        "value": 1
+      },
+      {
+        "timestamp": "2026-07-11T15:53:00Z",
+        "value": 1
+      },
+      {
+        "timestamp": "2026-07-11T15:54:00Z",
+        "value": 1
+      },
+      {
+        "timestamp": "2026-07-11T15:55:00Z",
+        "value": 1
+      },
+      {
+        "timestamp": "2026-07-11T15:56:00Z",
+        "value": 1
+      },
+      {
+        "timestamp": "2026-07-11T15:57:00Z",
+        "value": 1
+      },
+      {
+        "timestamp": "2026-07-11T15:58:00Z",
+        "value": 1
+      },
+      {
+        "timestamp": "2026-07-11T15:59:00Z",
+        "value": 1
+      },
+      {
+        "timestamp": "2026-07-11T16:00:00Z",
+        "value": 1
+      }
+    ]
+  },
+  {
+    "scenario": "fair-c100",
+    "namespace": "AWS/SQS",
+    "metric_name": "ApproximateNumberOfMessagesNotVisible",
+    "statistic": "Maximum",
+    "period_seconds": 60,
+    "dimensions": {
+      "QueueName": "sqs-fair-queue-lt-fair-c100"
+    },
+    "status": "Complete",
+    "points": [
+      {
+        "timestamp": "2026-07-11T15:45:00Z",
+        "value": 0
+      },
+      {
+        "timestamp": "2026-07-11T15:46:00Z",
+        "value": 0
+      },
+      {
+        "timestamp": "2026-07-11T15:47:00Z",
+        "value": 104
+      },
+      {
+        "timestamp": "2026-07-11T15:48:00Z",
+        "value": 87
+      },
+      {
+        "timestamp": "2026-07-11T15:49:00Z",
+        "value": 97
+      },
+      {
+        "timestamp": "2026-07-11T15:50:00Z",
+        "value": 105
+      },
+      {
+        "timestamp": "2026-07-11T15:51:00Z",
+        "value": 101
+      },
+      {
+        "timestamp": "2026-07-11T15:52:00Z",
+        "value": 83
+      },
+      {
+        "timestamp": "2026-07-11T15:53:00Z",
+        "value": 92
+      },
+      {
+        "timestamp": "2026-07-11T15:54:00Z",
+        "value": 102
+      },
+      {
+        "timestamp": "2026-07-11T15:55:00Z",
+        "value": 90
+      },
+      {
+        "timestamp": "2026-07-11T15:56:00Z",
+        "value": 76
+      },
+      {
+        "timestamp": "2026-07-11T15:57:00Z",
+        "value": 95
+      },
+      {
+        "timestamp": "2026-07-11T15:58:00Z",
+        "value": 90
+      },
+      {
+        "timestamp": "2026-07-11T15:59:00Z",
+        "value": 95
+      },
+      {
+        "timestamp": "2026-07-11T16:00:00Z",
+        "value": 85
+      }
+    ]
+  },
+  {
+    "scenario": "fair-c100",
+    "namespace": "AWS/SQS",
+    "metric_name": "ApproximateNumberOfMessagesNotVisibleInQuietGroups",
+    "statistic": "Maximum",
+    "period_seconds": 60,
+    "dimensions": {
+      "QueueName": "sqs-fair-queue-lt-fair-c100"
+    },
+    "status": "Complete",
+    "points": [
+      {
+        "timestamp": "2026-07-11T15:45:00Z",
+        "value": 0
+      },
+      {
+        "timestamp": "2026-07-11T15:46:00Z",
+        "value": 0
+      },
+      {
+        "timestamp": "2026-07-11T15:47:00Z",
+        "value": 89
+      },
+      {
+        "timestamp": "2026-07-11T15:48:00Z",
+        "value": 71
+      },
+      {
+        "timestamp": "2026-07-11T15:49:00Z",
+        "value": 82
+      },
+      {
+        "timestamp": "2026-07-11T15:50:00Z",
+        "value": 74
+      },
+      {
+        "timestamp": "2026-07-11T15:51:00Z",
+        "value": 55
+      },
+      {
+        "timestamp": "2026-07-11T15:52:00Z",
+        "value": 19
+      },
+      {
+        "timestamp": "2026-07-11T15:53:00Z",
+        "value": 22
+      },
+      {
+        "timestamp": "2026-07-11T15:54:00Z",
+        "value": 23
+      },
+      {
+        "timestamp": "2026-07-11T15:55:00Z",
+        "value": 24
+      },
+      {
+        "timestamp": "2026-07-11T15:56:00Z",
+        "value": 19
+      },
+      {
+        "timestamp": "2026-07-11T15:57:00Z",
+        "value": 0
+      },
+      {
+        "timestamp": "2026-07-11T15:58:00Z",
+        "value": 0
+      },
+      {
+        "timestamp": "2026-07-11T15:59:00Z",
+        "value": 0
+      },
+      {
+        "timestamp": "2026-07-11T16:00:00Z",
+        "value": 0
+      }
+    ]
+  },
+  {
+    "scenario": "fair-c100",
+    "namespace": "AWS/Lambda",
+    "metric_name": "ConcurrentExecutions",
+    "statistic": "Maximum",
+    "period_seconds": 60,
+    "dimensions": {
+      "FunctionName": "sqs-fair-queue-lt-fair-c100-consumer"
+    },
+    "status": "Complete",
+    "points": [
+      {
+        "timestamp": "2026-07-11T15:45:00Z",
+        "value": 26
+      },
+      {
+        "timestamp": "2026-07-11T15:46:00Z",
+        "value": 98
+      },
+      {
+        "timestamp": "2026-07-11T15:47:00Z",
+        "value": 100
+      },
+      {
+        "timestamp": "2026-07-11T15:48:00Z",
+        "value": 100
+      },
+      {
+        "timestamp": "2026-07-11T15:49:00Z",
+        "value": 100
+      },
+      {
+        "timestamp": "2026-07-11T15:50:00Z",
+        "value": 100
+      },
+      {
+        "timestamp": "2026-07-11T15:51:00Z",
+        "value": 100
+      },
+      {
+        "timestamp": "2026-07-11T15:52:00Z",
+        "value": 100
+      },
+      {
+        "timestamp": "2026-07-11T15:53:00Z",
+        "value": 100
+      },
+      {
+        "timestamp": "2026-07-11T15:54:00Z",
+        "value": 100
+      },
+      {
+        "timestamp": "2026-07-11T15:55:00Z",
+        "value": 100
+      },
+      {
+        "timestamp": "2026-07-11T15:56:00Z",
+        "value": 100
+      },
+      {
+        "timestamp": "2026-07-11T15:57:00Z",
+        "value": 100
+      },
+      {
+        "timestamp": "2026-07-11T15:58:00Z",
+        "value": 100
+      },
+      {
+        "timestamp": "2026-07-11T15:59:00Z",
+        "value": 100
+      },
+      {
+        "timestamp": "2026-07-11T16:00:00Z",
+        "value": 100
+      }
+    ]
+  }
+]

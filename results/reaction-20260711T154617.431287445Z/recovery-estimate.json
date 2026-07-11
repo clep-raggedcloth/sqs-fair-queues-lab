@@ -1,0 +1,56 @@
+[
+  {
+    "scenario": "baseline-c100",
+    "burst_started_ms": 1783784803185,
+    "burst_start_source": "first_a_sqs_sent_timestamp",
+    "threshold_source": "baseline_p95",
+    "baseline_count_by_tenant": {
+      "B": 100,
+      "C": 100
+    },
+    "baseline_p95_ms_by_tenant": {
+      "B": 24,
+      "C": 25
+    },
+    "low_dwell_threshold_ms_by_tenant": {
+      "B": 274,
+      "C": 275
+    },
+    "window_size_per_tenant": 10,
+    "required_low_dwell_messages_per_tenant": 8,
+    "disturbance_observed": true,
+    "recovery_observed": true,
+    "tenant_recovery_latency_ms": {
+      "B": 22199,
+      "C": 26365
+    },
+    "recovery_latency_ms": 26365
+  },
+  {
+    "scenario": "fair-c100",
+    "burst_started_ms": 1783784803183,
+    "burst_start_source": "first_a_sqs_sent_timestamp",
+    "threshold_source": "baseline_p95",
+    "baseline_count_by_tenant": {
+      "B": 100,
+      "C": 100
+    },
+    "baseline_p95_ms_by_tenant": {
+      "B": 28,
+      "C": 32
+    },
+    "low_dwell_threshold_ms_by_tenant": {
+      "B": 278,
+      "C": 282
+    },
+    "window_size_per_tenant": 10,
+    "required_low_dwell_messages_per_tenant": 8,
+    "disturbance_observed": true,
+    "recovery_observed": true,
+    "tenant_recovery_latency_ms": {
+      "B": 29737,
+      "C": 23634
+    },
+    "recovery_latency_ms": 29737
+  }
+]

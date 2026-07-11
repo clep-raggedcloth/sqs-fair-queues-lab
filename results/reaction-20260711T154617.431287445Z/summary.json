@@ -1,0 +1,92 @@
+[
+  {
+    "scenario": "baseline-c100",
+    "tenant": "A",
+    "phase": "burst",
+    "count": 30000,
+    "p50_dwell_ms": 390585,
+    "p95_dwell_ms": 710568,
+    "max_dwell_ms": 760282
+  },
+  {
+    "scenario": "baseline-c100",
+    "tenant": "B",
+    "phase": "baseline",
+    "count": 100,
+    "p50_dwell_ms": 16,
+    "p95_dwell_ms": 24,
+    "max_dwell_ms": 26
+  },
+  {
+    "scenario": "baseline-c100",
+    "tenant": "B",
+    "phase": "probe",
+    "count": 3000,
+    "p50_dwell_ms": 218902,
+    "p95_dwell_ms": 700947,
+    "max_dwell_ms": 760041
+  },
+  {
+    "scenario": "baseline-c100",
+    "tenant": "C",
+    "phase": "baseline",
+    "count": 100,
+    "p50_dwell_ms": 16,
+    "p95_dwell_ms": 25,
+    "max_dwell_ms": 50
+  },
+  {
+    "scenario": "baseline-c100",
+    "tenant": "C",
+    "phase": "probe",
+    "count": 3000,
+    "p50_dwell_ms": 217475,
+    "p95_dwell_ms": 699966,
+    "max_dwell_ms": 760440
+  },
+  {
+    "scenario": "fair-c100",
+    "tenant": "A",
+    "phase": "burst",
+    "count": 30000,
+    "p50_dwell_ms": 436330,
+    "p95_dwell_ms": 769272,
+    "max_dwell_ms": 802653
+  },
+  {
+    "scenario": "fair-c100",
+    "tenant": "B",
+    "phase": "baseline",
+    "count": 100,
+    "p50_dwell_ms": 16,
+    "p95_dwell_ms": 28,
+    "max_dwell_ms": 80
+  },
+  {
+    "scenario": "fair-c100",
+    "tenant": "B",
+    "phase": "probe",
+    "count": 3000,
+    "p50_dwell_ms": 239,
+    "p95_dwell_ms": 188862,
+    "max_dwell_ms": 234569
+  },
+  {
+    "scenario": "fair-c100",
+    "tenant": "C",
+    "phase": "baseline",
+    "count": 100,
+    "p50_dwell_ms": 16,
+    "p95_dwell_ms": 32,
+    "max_dwell_ms": 69
+  },
+  {
+    "scenario": "fair-c100",
+    "tenant": "C",
+    "phase": "probe",
+    "count": 3000,
+    "p50_dwell_ms": 247,
+    "p95_dwell_ms": 179989,
+    "max_dwell_ms": 235925
+  }
+]

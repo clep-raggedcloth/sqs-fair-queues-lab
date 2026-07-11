@@ -1,0 +1,92 @@
+[
+  {
+    "scenario": "baseline-c20",
+    "tenant": "A",
+    "phase": "burst",
+    "count": 5000,
+    "p50_dwell_ms": 341586,
+    "p95_dwell_ms": 619396,
+    "max_dwell_ms": 686047
+  },
+  {
+    "scenario": "baseline-c20",
+    "tenant": "B",
+    "phase": "baseline",
+    "count": 100,
+    "p50_dwell_ms": 15,
+    "p95_dwell_ms": 24,
+    "max_dwell_ms": 531
+  },
+  {
+    "scenario": "baseline-c20",
+    "tenant": "B",
+    "phase": "probe",
+    "count": 600,
+    "p50_dwell_ms": 1981,
+    "p95_dwell_ms": 621125,
+    "max_dwell_ms": 681823
+  },
+  {
+    "scenario": "baseline-c20",
+    "tenant": "C",
+    "phase": "baseline",
+    "count": 100,
+    "p50_dwell_ms": 15,
+    "p95_dwell_ms": 22,
+    "max_dwell_ms": 50
+  },
+  {
+    "scenario": "baseline-c20",
+    "tenant": "C",
+    "phase": "probe",
+    "count": 600,
+    "p50_dwell_ms": 1614,
+    "p95_dwell_ms": 616237,
+    "max_dwell_ms": 680265
+  },
+  {
+    "scenario": "fair-c20",
+    "tenant": "A",
+    "phase": "burst",
+    "count": 5000,
+    "p50_dwell_ms": 335773,
+    "p95_dwell_ms": 621783,
+    "max_dwell_ms": 710673
+  },
+  {
+    "scenario": "fair-c20",
+    "tenant": "B",
+    "phase": "baseline",
+    "count": 100,
+    "p50_dwell_ms": 16,
+    "p95_dwell_ms": 25,
+    "max_dwell_ms": 47
+  },
+  {
+    "scenario": "fair-c20",
+    "tenant": "B",
+    "phase": "probe",
+    "count": 600,
+    "p50_dwell_ms": 1557,
+    "p95_dwell_ms": 606826,
+    "max_dwell_ms": 696254
+  },
+  {
+    "scenario": "fair-c20",
+    "tenant": "C",
+    "phase": "baseline",
+    "count": 100,
+    "p50_dwell_ms": 16,
+    "p95_dwell_ms": 27,
+    "max_dwell_ms": 137
+  },
+  {
+    "scenario": "fair-c20",
+    "tenant": "C",
+    "phase": "probe",
+    "count": 600,
+    "p50_dwell_ms": 1462,
+    "p95_dwell_ms": 607382,
+    "max_dwell_ms": 691948
+  }
+]

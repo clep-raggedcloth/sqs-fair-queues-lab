@@ -1,0 +1,62 @@
+{
+  "semantics": "Concurrency share uses A handler-active as a lower-bound numerator and SQS ApproximateNumberOfMessagesNotVisible as an approximate denominator. Processing-time share is a 60-second rolling proxy reconstructed from handler work intervals; the AWS internal processing-time window is not public.",
+  "scenarios": [
+    {
+      "scenario": "baseline-c20",
+      "applicable": false,
+      "applicability_reason": "not applicable: messages without MessageGroupId are not grouped as tenant A by SQS",
+      "concurrency_share": {
+        "count_threshold": 30,
+        "share_threshold": 0.1,
+        "valid_sample_count": 0,
+        "peak_a_handler_active": 0,
+        "peak_approximate_not_visible": 0,
+        "peak_count_share_proxy": 0,
+        "count_condition_observed": false,
+        "share_condition_observed": false,
+        "both_conditions_observed": false,
+        "queue_total_reached_count_threshold": false,
+        "status": "not_applicable_without_message_group_id"
+      },
+      "processing_time_share": {
+        "share_threshold": 0.1,
+        "proxy_window_ms": 60000,
+        "sample_interval_ms": 1000,
+        "valid_sample_count": 0,
+        "peak_processing_time_share_proxy": 0,
+        "condition_observed": false,
+        "duration_above_threshold_ms": 0,
+        "status": "not_applicable_without_message_group_id"
+      }
+    },
+    {
+      "scenario": "fair-c20",
+      "applicable": true,
+      "applicability_reason": "MessageGroupId groups messages by tenant",
+      "concurrency_share": {
+        "count_threshold": 30,
+        "share_threshold": 0.1,
+        "valid_sample_count": 399,
+        "peak_a_handler_active": 20,
+        "peak_approximate_not_visible": 39,
+        "peak_count_share_proxy": 4.5,
+        "count_condition_observed": false,
+        "share_condition_observed": true,
+        "both_conditions_observed": false,
+        "queue_total_reached_count_threshold": true,
+        "status": "not_observed_but_route_cannot_be_excluded"
+      },
+      "processing_time_share": {
+        "share_threshold": 0.1,
+        "proxy_window_ms": 60000,
+        "sample_interval_ms": 1000,
+        "valid_sample_count": 600,
+        "peak_processing_time_share_proxy": 1,
+        "condition_observed": true,
+        "first_observed_elapsed_ms": 2000,
+        "duration_above_threshold_ms": 599000,
+        "status": "condition_observed_by_proxy"
+      }
+    }
+  ]
+}

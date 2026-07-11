@@ -1,0 +1,958 @@
+[
+  {
+    "scenario": "baseline-c20",
+    "namespace": "AWS/SQS",
+    "metric_name": "ApproximateNumberOfNoisyGroups",
+    "statistic": "Maximum",
+    "period_seconds": 60,
+    "dimensions": {
+      "QueueName": "sqs-fair-queue-lt-baseline-c20"
+    },
+    "status": "Complete",
+    "points": [
+      {
+        "timestamp": "2026-07-11T19:30:00Z",
+        "value": 0,
+        "phase": "baseline",
+        "elapsed_ms": -206188
+      },
+      {
+        "timestamp": "2026-07-11T19:31:00Z",
+        "value": 0,
+        "phase": "baseline",
+        "elapsed_ms": -146188
+      },
+      {
+        "timestamp": "2026-07-11T19:32:00Z",
+        "value": 0,
+        "phase": "baseline",
+        "elapsed_ms": -86188
+      },
+      {
+        "timestamp": "2026-07-11T19:33:00Z",
+        "value": 0,
+        "phase": "boundary_overlap",
+        "elapsed_ms": -26188
+      },
+      {
+        "timestamp": "2026-07-11T19:34:00Z",
+        "value": 0,
+        "phase": "measurement",
+        "elapsed_ms": 33812
+      },
+      {
+        "timestamp": "2026-07-11T19:35:00Z",
+        "value": 0,
+        "phase": "measurement",
+        "elapsed_ms": 93812
+      },
+      {
+        "timestamp": "2026-07-11T19:36:00Z",
+        "value": 0,
+        "phase": "measurement",
+        "elapsed_ms": 153812
+      },
+      {
+        "timestamp": "2026-07-11T19:37:00Z",
+        "value": 0,
+        "phase": "measurement",
+        "elapsed_ms": 213812
+      },
+      {
+        "timestamp": "2026-07-11T19:38:00Z",
+        "value": 0,
+        "phase": "measurement",
+        "elapsed_ms": 273812
+      },
+      {
+        "timestamp": "2026-07-11T19:39:00Z",
+        "value": 0,
+        "phase": "measurement",
+        "elapsed_ms": 333812
+      },
+      {
+        "timestamp": "2026-07-11T19:40:00Z",
+        "value": 0,
+        "phase": "measurement",
+        "elapsed_ms": 393812
+      },
+      {
+        "timestamp": "2026-07-11T19:41:00Z",
+        "value": 0,
+        "phase": "measurement",
+        "elapsed_ms": 453812
+      },
+      {
+        "timestamp": "2026-07-11T19:42:00Z",
+        "value": 0,
+        "phase": "measurement",
+        "elapsed_ms": 513812
+      },
+      {
+        "timestamp": "2026-07-11T19:43:00Z",
+        "value": 0,
+        "phase": "boundary_overlap",
+        "elapsed_ms": 573812
+      },
+      {
+        "timestamp": "2026-07-11T19:44:00Z",
+        "value": 0,
+        "phase": "drain",
+        "elapsed_ms": 633812
+      },
+      {
+        "timestamp": "2026-07-11T19:45:00Z",
+        "value": 0,
+        "phase": "drain",
+        "elapsed_ms": 693812
+      },
+      {
+        "timestamp": "2026-07-11T19:46:00Z",
+        "value": 0,
+        "phase": "drain",
+        "elapsed_ms": 753812
+      },
+      {
+        "timestamp": "2026-07-11T19:47:00Z",
+        "value": 0,
+        "phase": "drain",
+        "elapsed_ms": 813812
+      }
+    ]
+  },
+  {
+    "scenario": "baseline-c20",
+    "namespace": "AWS/SQS",
+    "metric_name": "ApproximateNumberOfMessagesNotVisible",
+    "statistic": "Maximum",
+    "period_seconds": 60,
+    "dimensions": {
+      "QueueName": "sqs-fair-queue-lt-baseline-c20"
+    },
+    "status": "Complete",
+    "points": [
+      {
+        "timestamp": "2026-07-11T19:30:00Z",
+        "value": 0,
+        "phase": "baseline",
+        "elapsed_ms": -206188
+      },
+      {
+        "timestamp": "2026-07-11T19:31:00Z",
+        "value": 0,
+        "phase": "baseline",
+        "elapsed_ms": -146188
+      },
+      {
+        "timestamp": "2026-07-11T19:32:00Z",
+        "value": 0,
+        "phase": "baseline",
+        "elapsed_ms": -86188
+      },
+      {
+        "timestamp": "2026-07-11T19:33:00Z",
+        "value": 4,
+        "phase": "boundary_overlap",
+        "elapsed_ms": -26188
+      },
+      {
+        "timestamp": "2026-07-11T19:34:00Z",
+        "value": 18,
+        "phase": "measurement",
+        "elapsed_ms": 33812
+      },
+      {
+        "timestamp": "2026-07-11T19:35:00Z",
+        "value": 17,
+        "phase": "measurement",
+        "elapsed_ms": 93812
+      },
+      {
+        "timestamp": "2026-07-11T19:36:00Z",
+        "value": 18,
+        "phase": "measurement",
+        "elapsed_ms": 153812
+      },
+      {
+        "timestamp": "2026-07-11T19:37:00Z",
+        "value": 16,
+        "phase": "measurement",
+        "elapsed_ms": 213812
+      },
+      {
+        "timestamp": "2026-07-11T19:38:00Z",
+        "value": 21,
+        "phase": "measurement",
+        "elapsed_ms": 273812
+      },
+      {
+        "timestamp": "2026-07-11T19:39:00Z",
+        "value": 18,
+        "phase": "measurement",
+        "elapsed_ms": 333812
+      },
+      {
+        "timestamp": "2026-07-11T19:40:00Z",
+        "value": 17,
+        "phase": "measurement",
+        "elapsed_ms": 393812
+      },
+      {
+        "timestamp": "2026-07-11T19:41:00Z",
+        "value": 18,
+        "phase": "measurement",
+        "elapsed_ms": 453812
+      },
+      {
+        "timestamp": "2026-07-11T19:42:00Z",
+        "value": 19,
+        "phase": "measurement",
+        "elapsed_ms": 513812
+      },
+      {
+        "timestamp": "2026-07-11T19:43:00Z",
+        "value": 11,
+        "phase": "boundary_overlap",
+        "elapsed_ms": 573812
+      },
+      {
+        "timestamp": "2026-07-11T19:44:00Z",
+        "value": 17,
+        "phase": "drain",
+        "elapsed_ms": 633812
+      },
+      {
+        "timestamp": "2026-07-11T19:45:00Z",
+        "value": 18,
+        "phase": "drain",
+        "elapsed_ms": 693812
+      },
+      {
+        "timestamp": "2026-07-11T19:46:00Z",
+        "value": 4,
+        "phase": "drain",
+        "elapsed_ms": 753812
+      },
+      {
+        "timestamp": "2026-07-11T19:47:00Z",
+        "value": 4,
+        "phase": "drain",
+        "elapsed_ms": 813812
+      }
+    ]
+  },
+  {
+    "scenario": "baseline-c20",
+    "namespace": "AWS/SQS",
+    "metric_name": "ApproximateNumberOfMessagesNotVisibleInQuietGroups",
+    "statistic": "Maximum",
+    "period_seconds": 60,
+    "dimensions": {
+      "QueueName": "sqs-fair-queue-lt-baseline-c20"
+    },
+    "status": "Complete",
+    "points": [
+      {
+        "timestamp": "2026-07-11T19:30:00Z",
+        "value": 0,
+        "phase": "baseline",
+        "elapsed_ms": -206188
+      },
+      {
+        "timestamp": "2026-07-11T19:31:00Z",
+        "value": 0,
+        "phase": "baseline",
+        "elapsed_ms": -146188
+      },
+      {
+        "timestamp": "2026-07-11T19:32:00Z",
+        "value": 0,
+        "phase": "baseline",
+        "elapsed_ms": -86188
+      },
+      {
+        "timestamp": "2026-07-11T19:33:00Z",
+        "value": 4,
+        "phase": "boundary_overlap",
+        "elapsed_ms": -26188
+      },
+      {
+        "timestamp": "2026-07-11T19:34:00Z",
+        "value": 18,
+        "phase": "measurement",
+        "elapsed_ms": 33812
+      },
+      {
+        "timestamp": "2026-07-11T19:35:00Z",
+        "value": 17,
+        "phase": "measurement",
+        "elapsed_ms": 93812
+      },
+      {
+        "timestamp": "2026-07-11T19:36:00Z",
+        "value": 18,
+        "phase": "measurement",
+        "elapsed_ms": 153812
+      },
+      {
+        "timestamp": "2026-07-11T19:37:00Z",
+        "value": 16,
+        "phase": "measurement",
+        "elapsed_ms": 213812
+      },
+      {
+        "timestamp": "2026-07-11T19:38:00Z",
+        "value": 21,
+        "phase": "measurement",
+        "elapsed_ms": 273812
+      },
+      {
+        "timestamp": "2026-07-11T19:39:00Z",
+        "value": 18,
+        "phase": "measurement",
+        "elapsed_ms": 333812
+      },
+      {
+        "timestamp": "2026-07-11T19:40:00Z",
+        "value": 17,
+        "phase": "measurement",
+        "elapsed_ms": 393812
+      },
+      {
+        "timestamp": "2026-07-11T19:41:00Z",
+        "value": 18,
+        "phase": "measurement",
+        "elapsed_ms": 453812
+      },
+      {
+        "timestamp": "2026-07-11T19:42:00Z",
+        "value": 19,
+        "phase": "measurement",
+        "elapsed_ms": 513812
+      },
+      {
+        "timestamp": "2026-07-11T19:43:00Z",
+        "value": 11,
+        "phase": "boundary_overlap",
+        "elapsed_ms": 573812
+      },
+      {
+        "timestamp": "2026-07-11T19:44:00Z",
+        "value": 17,
+        "phase": "drain",
+        "elapsed_ms": 633812
+      },
+      {
+        "timestamp": "2026-07-11T19:45:00Z",
+        "value": 18,
+        "phase": "drain",
+        "elapsed_ms": 693812
+      },
+      {
+        "timestamp": "2026-07-11T19:46:00Z",
+        "value": 4,
+        "phase": "drain",
+        "elapsed_ms": 753812
+      },
+      {
+        "timestamp": "2026-07-11T19:47:00Z",
+        "value": 4,
+        "phase": "drain",
+        "elapsed_ms": 813812
+      }
+    ]
+  },
+  {
+    "scenario": "baseline-c20",
+    "namespace": "AWS/Lambda",
+    "metric_name": "ConcurrentExecutions",
+    "statistic": "Maximum",
+    "period_seconds": 60,
+    "dimensions": {
+      "FunctionName": "sqs-fair-queue-lt-baseline-c20-consumer"
+    },
+    "status": "Complete",
+    "points": [
+      {
+        "timestamp": "2026-07-11T19:31:00Z",
+        "value": 17,
+        "phase": "baseline",
+        "elapsed_ms": -146188
+      },
+      {
+        "timestamp": "2026-07-11T19:32:00Z",
+        "value": 6,
+        "phase": "baseline",
+        "elapsed_ms": -86188
+      },
+      {
+        "timestamp": "2026-07-11T19:33:00Z",
+        "value": 20,
+        "phase": "boundary_overlap",
+        "elapsed_ms": -26188
+      },
+      {
+        "timestamp": "2026-07-11T19:34:00Z",
+        "value": 20,
+        "phase": "measurement",
+        "elapsed_ms": 33812
+      },
+      {
+        "timestamp": "2026-07-11T19:35:00Z",
+        "value": 20,
+        "phase": "measurement",
+        "elapsed_ms": 93812
+      },
+      {
+        "timestamp": "2026-07-11T19:36:00Z",
+        "value": 20,
+        "phase": "measurement",
+        "elapsed_ms": 153812
+      },
+      {
+        "timestamp": "2026-07-11T19:37:00Z",
+        "value": 20,
+        "phase": "measurement",
+        "elapsed_ms": 213812
+      },
+      {
+        "timestamp": "2026-07-11T19:38:00Z",
+        "value": 20,
+        "phase": "measurement",
+        "elapsed_ms": 273812
+      },
+      {
+        "timestamp": "2026-07-11T19:39:00Z",
+        "value": 20,
+        "phase": "measurement",
+        "elapsed_ms": 333812
+      },
+      {
+        "timestamp": "2026-07-11T19:40:00Z",
+        "value": 20,
+        "phase": "measurement",
+        "elapsed_ms": 393812
+      },
+      {
+        "timestamp": "2026-07-11T19:41:00Z",
+        "value": 20,
+        "phase": "measurement",
+        "elapsed_ms": 453812
+      },
+      {
+        "timestamp": "2026-07-11T19:42:00Z",
+        "value": 20,
+        "phase": "measurement",
+        "elapsed_ms": 513812
+      },
+      {
+        "timestamp": "2026-07-11T19:43:00Z",
+        "value": 20,
+        "phase": "boundary_overlap",
+        "elapsed_ms": 573812
+      },
+      {
+        "timestamp": "2026-07-11T19:44:00Z",
+        "value": 20,
+        "phase": "drain",
+        "elapsed_ms": 633812
+      },
+      {
+        "timestamp": "2026-07-11T19:45:00Z",
+        "value": 20,
+        "phase": "drain",
+        "elapsed_ms": 693812
+      },
+      {
+        "timestamp": "2026-07-11T19:46:00Z",
+        "value": 5,
+        "phase": "drain",
+        "elapsed_ms": 753812
+      },
+      {
+        "timestamp": "2026-07-11T19:47:00Z",
+        "value": 5,
+        "phase": "drain",
+        "elapsed_ms": 813812
+      }
+    ]
+  },
+  {
+    "scenario": "fair-c20",
+    "namespace": "AWS/SQS",
+    "metric_name": "ApproximateNumberOfNoisyGroups",
+    "statistic": "Maximum",
+    "period_seconds": 60,
+    "dimensions": {
+      "QueueName": "sqs-fair-queue-lt-fair-c20"
+    },
+    "status": "Complete",
+    "points": [
+      {
+        "timestamp": "2026-07-11T19:30:00Z",
+        "value": 0,
+        "phase": "baseline",
+        "elapsed_ms": -206356
+      },
+      {
+        "timestamp": "2026-07-11T19:31:00Z",
+        "value": 0,
+        "phase": "baseline",
+        "elapsed_ms": -146356
+      },
+      {
+        "timestamp": "2026-07-11T19:32:00Z",
+        "value": 0,
+        "phase": "baseline",
+        "elapsed_ms": -86356
+      },
+      {
+        "timestamp": "2026-07-11T19:33:00Z",
+        "value": 0,
+        "phase": "boundary_overlap",
+        "elapsed_ms": -26356
+      },
+      {
+        "timestamp": "2026-07-11T19:34:00Z",
+        "value": 0,
+        "phase": "measurement",
+        "elapsed_ms": 33644
+      },
+      {
+        "timestamp": "2026-07-11T19:35:00Z",
+        "value": 0,
+        "phase": "measurement",
+        "elapsed_ms": 93644
+      },
+      {
+        "timestamp": "2026-07-11T19:36:00Z",
+        "value": 0,
+        "phase": "measurement",
+        "elapsed_ms": 153644
+      },
+      {
+        "timestamp": "2026-07-11T19:37:00Z",
+        "value": 0,
+        "phase": "measurement",
+        "elapsed_ms": 213644
+      },
+      {
+        "timestamp": "2026-07-11T19:38:00Z",
+        "value": 0,
+        "phase": "measurement",
+        "elapsed_ms": 273644
+      },
+      {
+        "timestamp": "2026-07-11T19:39:00Z",
+        "value": 0,
+        "phase": "measurement",
+        "elapsed_ms": 333644
+      },
+      {
+        "timestamp": "2026-07-11T19:40:00Z",
+        "value": 0,
+        "phase": "measurement",
+        "elapsed_ms": 393644
+      },
+      {
+        "timestamp": "2026-07-11T19:41:00Z",
+        "value": 0,
+        "phase": "measurement",
+        "elapsed_ms": 453644
+      },
+      {
+        "timestamp": "2026-07-11T19:42:00Z",
+        "value": 0,
+        "phase": "measurement",
+        "elapsed_ms": 513644
+      },
+      {
+        "timestamp": "2026-07-11T19:43:00Z",
+        "value": 0,
+        "phase": "boundary_overlap",
+        "elapsed_ms": 573644
+      },
+      {
+        "timestamp": "2026-07-11T19:44:00Z",
+        "value": 0,
+        "phase": "drain",
+        "elapsed_ms": 633644
+      },
+      {
+        "timestamp": "2026-07-11T19:45:00Z",
+        "value": 0,
+        "phase": "drain",
+        "elapsed_ms": 693644
+      },
+      {
+        "timestamp": "2026-07-11T19:46:00Z",
+        "value": 0,
+        "phase": "drain",
+        "elapsed_ms": 753644
+      },
+      {
+        "timestamp": "2026-07-11T19:47:00Z",
+        "value": 0,
+        "phase": "drain",
+        "elapsed_ms": 813644
+      }
+    ]
+  },
+  {
+    "scenario": "fair-c20",
+    "namespace": "AWS/SQS",
+    "metric_name": "ApproximateNumberOfMessagesNotVisible",
+    "statistic": "Maximum",
+    "period_seconds": 60,
+    "dimensions": {
+      "QueueName": "sqs-fair-queue-lt-fair-c20"
+    },
+    "status": "Complete",
+    "points": [
+      {
+        "timestamp": "2026-07-11T19:30:00Z",
+        "value": 0,
+        "phase": "baseline",
+        "elapsed_ms": -206356
+      },
+      {
+        "timestamp": "2026-07-11T19:31:00Z",
+        "value": 0,
+        "phase": "baseline",
+        "elapsed_ms": -146356
+      },
+      {
+        "timestamp": "2026-07-11T19:32:00Z",
+        "value": 0,
+        "phase": "baseline",
+        "elapsed_ms": -86356
+      },
+      {
+        "timestamp": "2026-07-11T19:33:00Z",
+        "value": 4,
+        "phase": "boundary_overlap",
+        "elapsed_ms": -26356
+      },
+      {
+        "timestamp": "2026-07-11T19:34:00Z",
+        "value": 20,
+        "phase": "measurement",
+        "elapsed_ms": 33644
+      },
+      {
+        "timestamp": "2026-07-11T19:35:00Z",
+        "value": 19,
+        "phase": "measurement",
+        "elapsed_ms": 93644
+      },
+      {
+        "timestamp": "2026-07-11T19:36:00Z",
+        "value": 16,
+        "phase": "measurement",
+        "elapsed_ms": 153644
+      },
+      {
+        "timestamp": "2026-07-11T19:37:00Z",
+        "value": 14,
+        "phase": "measurement",
+        "elapsed_ms": 213644
+      },
+      {
+        "timestamp": "2026-07-11T19:38:00Z",
+        "value": 14,
+        "phase": "measurement",
+        "elapsed_ms": 273644
+      },
+      {
+        "timestamp": "2026-07-11T19:39:00Z",
+        "value": 14,
+        "phase": "measurement",
+        "elapsed_ms": 333644
+      },
+      {
+        "timestamp": "2026-07-11T19:40:00Z",
+        "value": 17,
+        "phase": "measurement",
+        "elapsed_ms": 393644
+      },
+      {
+        "timestamp": "2026-07-11T19:41:00Z",
+        "value": 18,
+        "phase": "measurement",
+        "elapsed_ms": 453644
+      },
+      {
+        "timestamp": "2026-07-11T19:42:00Z",
+        "value": 17,
+        "phase": "measurement",
+        "elapsed_ms": 513644
+      },
+      {
+        "timestamp": "2026-07-11T19:43:00Z",
+        "value": 18,
+        "phase": "boundary_overlap",
+        "elapsed_ms": 573644
+      },
+      {
+        "timestamp": "2026-07-11T19:44:00Z",
+        "value": 17,
+        "phase": "drain",
+        "elapsed_ms": 633644
+      },
+      {
+        "timestamp": "2026-07-11T19:45:00Z",
+        "value": 17,
+        "phase": "drain",
+        "elapsed_ms": 693644
+      },
+      {
+        "timestamp": "2026-07-11T19:46:00Z",
+        "value": 7,
+        "phase": "drain",
+        "elapsed_ms": 753644
+      },
+      {
+        "timestamp": "2026-07-11T19:47:00Z",
+        "value": 4,
+        "phase": "drain",
+        "elapsed_ms": 813644
+      }
+    ]
+  },
+  {
+    "scenario": "fair-c20",
+    "namespace": "AWS/SQS",
+    "metric_name": "ApproximateNumberOfMessagesNotVisibleInQuietGroups",
+    "statistic": "Maximum",
+    "period_seconds": 60,
+    "dimensions": {
+      "QueueName": "sqs-fair-queue-lt-fair-c20"
+    },
+    "status": "Complete",
+    "points": [
+      {
+        "timestamp": "2026-07-11T19:30:00Z",
+        "value": 0,
+        "phase": "baseline",
+        "elapsed_ms": -206356
+      },
+      {
+        "timestamp": "2026-07-11T19:31:00Z",
+        "value": 0,
+        "phase": "baseline",
+        "elapsed_ms": -146356
+      },
+      {
+        "timestamp": "2026-07-11T19:32:00Z",
+        "value": 0,
+        "phase": "baseline",
+        "elapsed_ms": -86356
+      },
+      {
+        "timestamp": "2026-07-11T19:33:00Z",
+        "value": 4,
+        "phase": "boundary_overlap",
+        "elapsed_ms": -26356
+      },
+      {
+        "timestamp": "2026-07-11T19:34:00Z",
+        "value": 19,
+        "phase": "measurement",
+        "elapsed_ms": 33644
+      },
+      {
+        "timestamp": "2026-07-11T19:35:00Z",
+        "value": 19,
+        "phase": "measurement",
+        "elapsed_ms": 93644
+      },
+      {
+        "timestamp": "2026-07-11T19:36:00Z",
+        "value": 16,
+        "phase": "measurement",
+        "elapsed_ms": 153644
+      },
+      {
+        "timestamp": "2026-07-11T19:37:00Z",
+        "value": 14,
+        "phase": "measurement",
+        "elapsed_ms": 213644
+      },
+      {
+        "timestamp": "2026-07-11T19:38:00Z",
+        "value": 13,
+        "phase": "measurement",
+        "elapsed_ms": 273644
+      },
+      {
+        "timestamp": "2026-07-11T19:39:00Z",
+        "value": 13,
+        "phase": "measurement",
+        "elapsed_ms": 333644
+      },
+      {
+        "timestamp": "2026-07-11T19:40:00Z",
+        "value": 17,
+        "phase": "measurement",
+        "elapsed_ms": 393644
+      },
+      {
+        "timestamp": "2026-07-11T19:41:00Z",
+        "value": 17,
+        "phase": "measurement",
+        "elapsed_ms": 453644
+      },
+      {
+        "timestamp": "2026-07-11T19:42:00Z",
+        "value": 16,
+        "phase": "measurement",
+        "elapsed_ms": 513644
+      },
+      {
+        "timestamp": "2026-07-11T19:43:00Z",
+        "value": 18,
+        "phase": "boundary_overlap",
+        "elapsed_ms": 573644
+      },
+      {
+        "timestamp": "2026-07-11T19:44:00Z",
+        "value": 17,
+        "phase": "drain",
+        "elapsed_ms": 633644
+      },
+      {
+        "timestamp": "2026-07-11T19:45:00Z",
+        "value": 16,
+        "phase": "drain",
+        "elapsed_ms": 693644
+      },
+      {
+        "timestamp": "2026-07-11T19:46:00Z",
+        "value": 7,
+        "phase": "drain",
+        "elapsed_ms": 753644
+      },
+      {
+        "timestamp": "2026-07-11T19:47:00Z",
+        "value": 4,
+        "phase": "drain",
+        "elapsed_ms": 813644
+      }
+    ]
+  },
+  {
+    "scenario": "fair-c20",
+    "namespace": "AWS/Lambda",
+    "metric_name": "ConcurrentExecutions",
+    "statistic": "Maximum",
+    "period_seconds": 60,
+    "dimensions": {
+      "FunctionName": "sqs-fair-queue-lt-fair-c20-consumer"
+    },
+    "status": "Complete",
+    "points": [
+      {
+        "timestamp": "2026-07-11T19:31:00Z",
+        "value": 16,
+        "phase": "baseline",
+        "elapsed_ms": -146356
+      },
+      {
+        "timestamp": "2026-07-11T19:32:00Z",
+        "value": 5,
+        "phase": "baseline",
+        "elapsed_ms": -86356
+      },
+      {
+        "timestamp": "2026-07-11T19:33:00Z",
+        "value": 20,
+        "phase": "boundary_overlap",
+        "elapsed_ms": -26356
+      },
+      {
+        "timestamp": "2026-07-11T19:34:00Z",
+        "value": 20,
+        "phase": "measurement",
+        "elapsed_ms": 33644
+      },
+      {
+        "timestamp": "2026-07-11T19:35:00Z",
+        "value": 20,
+        "phase": "measurement",
+        "elapsed_ms": 93644
+      },
+      {
+        "timestamp": "2026-07-11T19:36:00Z",
+        "value": 20,
+        "phase": "measurement",
+        "elapsed_ms": 153644
+      },
+      {
+        "timestamp": "2026-07-11T19:37:00Z",
+        "value": 20,
+        "phase": "measurement",
+        "elapsed_ms": 213644
+      },
+      {
+        "timestamp": "2026-07-11T19:38:00Z",
+        "value": 20,
+        "phase": "measurement",
+        "elapsed_ms": 273644
+      },
+      {
+        "timestamp": "2026-07-11T19:39:00Z",
+        "value": 20,
+        "phase": "measurement",
+        "elapsed_ms": 333644
+      },
+      {
+        "timestamp": "2026-07-11T19:40:00Z",
+        "value": 20,
+        "phase": "measurement",
+        "elapsed_ms": 393644
+      },
+      {
+        "timestamp": "2026-07-11T19:41:00Z",
+        "value": 20,
+        "phase": "measurement",
+        "elapsed_ms": 453644
+      },
+      {
+        "timestamp": "2026-07-11T19:42:00Z",
+        "value": 20,
+        "phase": "measurement",
+        "elapsed_ms": 513644
+      },
+      {
+        "timestamp": "2026-07-11T19:43:00Z",
+        "value": 20,
+        "phase": "boundary_overlap",
+        "elapsed_ms": 573644
+      },
+      {
+        "timestamp": "2026-07-11T19:44:00Z",
+        "value": 20,
+        "phase": "drain",
+        "elapsed_ms": 633644
+      },
+      {
+        "timestamp": "2026-07-11T19:45:00Z",
+        "value": 20,
+        "phase": "drain",
+        "elapsed_ms": 693644
+      },
+      {
+        "timestamp": "2026-07-11T19:46:00Z",
+        "value": 5,
+        "phase": "drain",
+        "elapsed_ms": 753644
+      },
+      {
+        "timestamp": "2026-07-11T19:47:00Z",
+        "value": 5,
+        "phase": "drain",
+        "elapsed_ms": 813644
+      }
+    ]
+  }
+]

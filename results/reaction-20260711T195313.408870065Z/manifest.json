@@ -1,0 +1,32 @@
+{
+  "experiment_id": "reaction-20260711T195313.408870065Z",
+  "kind": "reaction",
+  "run_status": "complete",
+  "scenarios": [
+    "baseline-c100",
+    "fair-c100"
+  ],
+  "started_at": "2026-07-11T19:53:13.408875876Z",
+  "completed_at": "2026-07-11T20:07:41.719524703Z",
+  "work_ms": 2000,
+  "burst_messages_per_scenario": 30000,
+  "probe_messages_per_scenario": 6000,
+  "probe_interval_ms": 100,
+  "queue_sample_interval_ms": 1000,
+  "queue_sample_count": 1682,
+  "queue_sample_error_count": 0,
+  "observation_window_ms": 600000,
+  "warmup_messages_per_scenario": 200,
+  "baseline_duration_ms": 20000,
+  "baseline_interval_ms": 100,
+  "baseline_messages_per_scenario": 200,
+  "maximum_concurrency": 100,
+  "scenario_timings": {
+    "baseline-c100": {
+      "burst_started_at": "2026-07-11T19:53:41.529195852Z"
+    },
+    "fair-c100": {
+      "burst_started_at": "2026-07-11T19:53:41.623430758Z"
+    }
+  }
+}

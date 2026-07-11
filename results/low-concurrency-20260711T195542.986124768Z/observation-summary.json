@@ -1,0 +1,56 @@
+[
+  {
+    "scenario": "baseline-c20",
+    "tenant": "A",
+    "phase": "burst",
+    "count": 5000,
+    "p50_dwell_ms": 302208,
+    "p95_dwell_ms": 580959,
+    "max_dwell_ms": 686717
+  },
+  {
+    "scenario": "baseline-c20",
+    "tenant": "B",
+    "phase": "probe",
+    "count": 600,
+    "p50_dwell_ms": 364857,
+    "p95_dwell_ms": 596329,
+    "max_dwell_ms": 681585
+  },
+  {
+    "scenario": "baseline-c20",
+    "tenant": "C",
+    "phase": "probe",
+    "count": 600,
+    "p50_dwell_ms": 368104,
+    "p95_dwell_ms": 598021,
+    "max_dwell_ms": 673444
+  },
+  {
+    "scenario": "fair-c20",
+    "tenant": "A",
+    "phase": "burst",
+    "count": 5000,
+    "p50_dwell_ms": 296706,
+    "p95_dwell_ms": 571254,
+    "max_dwell_ms": 660634
+  },
+  {
+    "scenario": "fair-c20",
+    "tenant": "B",
+    "phase": "probe",
+    "count": 600,
+    "p50_dwell_ms": 358126,
+    "p95_dwell_ms": 588242,
+    "max_dwell_ms": 656024
+  },
+  {
+    "scenario": "fair-c20",
+    "tenant": "C",
+    "phase": "probe",
+    "count": 600,
+    "p50_dwell_ms": 367473,
+    "p95_dwell_ms": 585055,
+    "max_dwell_ms": 650442
+  }
+]

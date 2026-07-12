@@ -5,7 +5,7 @@ Amazon SQS Standard QueueでFair Queuesを利用し、次の2点をAWS上で検�
 1. テナントAのバースト発生後、静かなテナントB・Cのdwell timeが平常値へ戻るまでの時間
 2. Lambdaの最大同時実行数を20に制限したとき、Fair Queuesによるquiet tenantの遅延改善を観測できるか
 
-ConsumerはGoのLambda、AWSリソースはTerraform、負荷生成と結果回収はGo CLIで実装しています。開発環境にはDev Containerを使用します。
+ConsumerはGoのLambda、AWSリソースはTerraform、負荷生成と結果回収はGo CLIで実装しています。ビルドとAWSへのデプロイにはDev Containerを使用できます。
 
 ## 最初に押さえるFair Queuesの判定条件
 
@@ -74,33 +74,22 @@ flowchart LR
 
 ## Dev Container
 
-ホスト側にGoやTerraformを直接インストールする必要はありません。Dev Containerには次の環境が含まれています。
+ホスト側にGoやTerraformを直接インストールする必要はありません。Dev Containerには次の環境が含まれています。この検証は実AWSのSQS、Lambda、CloudWatchを対象とし、ローカルのAWS互換サービスは使用しません。
 
 - Go 1.26
 - Terraform
 - AWS CLI
 - VS CodeのGo、Terraform、AWS Toolkit拡張
-- SQSとDynamoDBを提供するMinistack
 
 ```mermaid
 flowchart LR
     Host["ホスト環境<br/>Docker・Dev Containers"] --> App["app container<br/>Go 1.26<br/>Terraform<br/>AWS CLI"]
-    App --> Mini["ministack container<br/>SQS・DynamoDB<br/>localhost:4566"]
     App --> AWS["実AWS<br/>SQS Fair Queues<br/>Lambda・CloudWatch"]
 ```
 
-MinistackはGoコードの開発や基本的なSQS API確認に利用します。Fair Queuesのスケジューリング、Lambdaイベントソースマッピング、CloudWatchメトリクスを含む最終検証は実AWSで行います。
-
 ### 起動
 
-VS Codeでは、このリポジトリを開いて`Dev Containers: Reopen in Container`を実行します。初回起動時はコンテナのビルド、Goモジュールのダウンロード、Ministackの疎通確認が自動実行されます。
-
-CLIからコンテナだけ起動する場合：
-
-```bash
-docker compose -f .devcontainer/docker-compose.yml up -d --build
-docker compose -f .devcontainer/docker-compose.yml exec app bash
-```
+VS Codeでは、このリポジトリを開いて`Dev Containers: Reopen in Container`を実行します。初回起動時はコンテナのビルドとGoモジュールのダウンロードが自動実行されます。
 
 コンテナ内のワークスペースは`/workspace`です。
 
@@ -109,7 +98,6 @@ cd /workspace
 go version
 terraform version
 aws --version
-aws --endpoint-url "$AWS_ENDPOINT" sqs list-queues
 ```
 
 ## Consumerが記録する値
@@ -315,10 +303,9 @@ build/
 
 ## 実AWSへのデプロイ
 
-`docker-compose.yml`の初期値はMinistack用のmock認証情報です。実AWSを操作するターミナルではmock値を解除し、利用するAWSプロファイルを設定します。
+Dev Containerはホストの`~/.aws`を自動ではマウントしません。コンテナ内でAWS SSOプロファイルを設定し、利用するAWSアカウントを明示的に確認してください。
 
 ```bash
-unset AWS_ACCESS_KEY_ID AWS_SECRET_ACCESS_KEY AWS_SESSION_TOKEN AWS_ENDPOINT
 export AWS_REGION=ap-northeast-1
 
 aws configure sso --profile fairqueue-verification
@@ -327,7 +314,7 @@ aws sso login --profile "$AWS_PROFILE"
 aws sts get-caller-identity
 ```
 
-この操作でプロファイルはコンテナ内の`/root/.aws`へ作成されます。コンテナを作り直すとプロファイルも消えるため、必要に応じてホストの`~/.aws`を`/root/.aws`へマウントして永続化してください。
+この操作でプロファイルはコンテナ内の`/root/.aws`へ作成されます。コンテナを作り直した場合は、必要に応じて再設定してください。
 
 認証確認後、コンテナ内でTerraformを実行します。
 
@@ -422,3 +409,7 @@ DLQにメッセージが残っていても、Terraformによるキュー削除�
 - [Available CloudWatch metrics for Amazon SQS](https://docs.aws.amazon.com/AWSSimpleQueueService/latest/SQSDeveloperGuide/sqs-available-cloudwatch-metrics.html)
 - [Creating and configuring an Amazon SQS event source mapping](https://docs.aws.amazon.com/lambda/latest/dg/services-sqs-configure.html)
 - [Using the message group ID with Amazon SQS queues](https://docs.aws.amazon.com/AWSSimpleQueueService/latest/SQSDeveloperGuide/using-messagegroupid-property.html)
+
+## License
+
+This project is licensed under the MIT License. See [LICENSE](LICENSE).

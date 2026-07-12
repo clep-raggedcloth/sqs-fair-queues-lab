@@ -1,14 +1,17 @@
 """検証①②の滞留時間チャートを results/ の生データから再作成する。
 出力: chart_verify1.png / chart_verify2.png (1764x1064)
 """
-import csv, matplotlib
+import csv
+from pathlib import Path
+
+import matplotlib
 matplotlib.use('Agg')
 import matplotlib.pyplot as plt
 
 plt.rcParams['font.family'] = 'Hiragino Sans'
 plt.rcParams['axes.unicode_minus'] = False
 
-RESULTS = '/Users/aoiito/Desktop/dev/jawslt_202608/results'
+RESULTS = Path(__file__).resolve().parent / 'results'
 C_BASE = '#E2705C'   # baseline: サーモン
 C_FAIR = '#2E9E88'   # fair: ティール
 C_ANNO = '#C87820'   # 注釈オレンジ
@@ -16,7 +19,7 @@ C_GRAY = '#8A9097'
 
 def load(run, scenarios, burst_ms):
     pts = {s: ([], []) for s in scenarios}
-    with open(f'{RESULTS}/{run}/events.csv') as f:
+    with (RESULTS / run / 'events.csv').open() as f:
         for r in csv.DictReader(f):
             s = r['scenario']
             if s not in pts or r['tenant'] not in ('B', 'C'):

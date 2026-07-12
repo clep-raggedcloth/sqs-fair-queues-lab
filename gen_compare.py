@@ -1,11 +1,15 @@
 """検証①(reaction/c100) 3回分の比較チャート。スライド用ではなく確認用。"""
-import csv, json, matplotlib
+import csv
+import json
+from pathlib import Path
+
+import matplotlib
 matplotlib.use('Agg')
 import matplotlib.pyplot as plt
 
 plt.rcParams['font.family'] = 'Hiragino Sans'
 plt.rcParams['axes.unicode_minus'] = False
-RESULTS='/Users/aoiito/Desktop/dev/jawslt_202608/results'
+RESULTS = Path(__file__).resolve().parent / 'results'
 C_BASE='#E2705C'; C_FAIR='#2E9E88'; C_ANNO='#C87820'; C_GRAY='#8A9097'
 
 runs=[('run1（7/10 23:17 JST・スライド掲載回）','reaction-20260710T141732.186490574Z',(53,113)),
@@ -13,10 +17,11 @@ runs=[('run1（7/10 23:17 JST・スライド掲載回）','reaction-20260710T141
       ('run3（7/12 04:53 JST）','reaction-20260711T195313.408870065Z',(18,78))]
 
 for i,(label,run,band) in enumerate(runs,1):
-    rec={r['scenario']:r for r in json.load(open(f'{RESULTS}/{run}/recovery-estimate.json'))}
+    with (RESULTS / run / 'recovery-estimate.json').open() as f:
+        rec={r['scenario']:r for r in json.load(f)}
     burst={s:rec[s]['burst_started_ms'] for s in ('baseline-c100','fair-c100')}
     pts={s:([],[]) for s in burst}
-    with open(f'{RESULTS}/{run}/events.csv') as f:
+    with (RESULTS / run / 'events.csv').open() as f:
         for r in csv.DictReader(f):
             s=r['scenario']
             if s not in pts or r['tenant'] not in ('B','C'): continue
